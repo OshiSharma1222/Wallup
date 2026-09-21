@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Interop;
 using Wallup.Diagnostics;
 using Wallup.Interop;
@@ -18,11 +19,19 @@ internal partial class AmbientWindow : Window
     private readonly TaskListViewModel _viewModel;
     private IntPtr _handle = IntPtr.Zero;
 
-    internal AmbientWindow(TaskListViewModel viewModel)
+    internal AmbientWindow(TaskListViewModel viewModel, bool opaque = false)
     {
         _viewModel = viewModel;
         DataContext = viewModel;
         InitializeComponent();
+
+        if (opaque)
+        {
+            // Diagnostic: a layered window may not composite once it is a child of
+            // Progman. Dropping per-pixel alpha tells us whether that is the cause.
+            AllowsTransparency = false;
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x10, 0x12, 0x16));
+        }
 
         viewModel.Settings.PropertyChanged += OnSettingsChanged;
     }

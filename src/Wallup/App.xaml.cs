@@ -13,6 +13,7 @@ public partial class App : Application
 {
     private const string InstanceMutexName = "Wallup.SingleInstance";
 
+    private bool _opaque;
     private Mutex? _instanceMutex;
     private DesktopRightClickHook? _hook;
     private System.Windows.Forms.NotifyIcon? _tray;
@@ -39,12 +40,14 @@ public partial class App : Application
             return;
         }
 
+        _opaque = e.Args.Contains("--opaque");
+
         Log.Info("---- Wallup starting ----");
 
         var settingsStore = new SettingsStore();
         _viewModel = new TaskListViewModel(new TaskStore(), settingsStore, settingsStore.Load());
 
-        _ambient = new AmbientWindow(_viewModel);
+        _ambient = new AmbientWindow(_viewModel, _opaque);
         _ambient.Show();
 
         _taskBox = new TaskBoxWindow(_viewModel);
@@ -156,7 +159,7 @@ public partial class App : Application
         }
 
         _ambient?.Close();
-        _ambient = new AmbientWindow(_viewModel);
+        _ambient = new AmbientWindow(_viewModel, _opaque);
         _ambient.Show();
         Log.Info($"Reattached. Strategy: {_ambient.AttachStrategy}, attached={_ambient.IsAttached}.");
     }

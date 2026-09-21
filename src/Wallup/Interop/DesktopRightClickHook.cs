@@ -66,7 +66,14 @@ internal sealed class DesktopRightClickHook : IDisposable
         }
 
         var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-        if (!IsEmptyDesktopAt(data.pt))
+        var isDesktop = IsEmptyDesktopAt(data.pt);
+
+        var hit = WindowFromPoint(data.pt);
+        Log.Info($"Right-click at {data.pt.X},{data.pt.Y} on \"{ClassNameOf(hit)}\" " +
+                 $"(root \"{ClassNameOf(GetAncestor(hit, GA_ROOT))}\") -> " +
+                 $"{(isDesktop ? "TAKING IT" : "passing through")}.");
+
+        if (!isDesktop)
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
