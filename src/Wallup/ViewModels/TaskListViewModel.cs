@@ -1,24 +1,19 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using System.Windows.Data;
-using System.Windows.Input;
 using Wallup.Models;
 using Wallup.Storage;
 
 namespace Wallup.ViewModels;
 
 /// <summary>
-/// The single source of truth for the task list. Both the ambient wallpaper layer and the
-/// interactive task box bind to this instance, which is why an edit in the box shows up on
-/// the wallpaper without anything being regenerated.
+/// The task list, and the only source of truth. Chip windows are created and destroyed to
+/// follow it, so adding here puts a chip on the desktop and removing here takes it away.
 /// </summary>
-internal sealed class TaskListViewModel : INotifyPropertyChanged
+internal sealed class TaskListViewModel
 {
     private readonly TaskStore _store;
     private readonly SettingsStore _settingsStore;
-    private string _draft = string.Empty;
 
     internal TaskListViewModel(TaskStore store, SettingsStore settingsStore, AppSettings settings)
     {
@@ -33,56 +28,25 @@ internal sealed class TaskListViewModel : INotifyPropertyChanged
         {
             task.PropertyChanged += OnTaskChanged;
         }
-
-        // The wallpaper view can hide finished work; the task box always shows everything.
-        VisibleTasks = new CollectionViewSource { Source = Tasks }.View;
-        VisibleTasks.Filter = o => !Settings.HideCompleted || o is not TaskItem { IsDone: true };
-
-        AddCommand = new RelayCommand(_ => Add(Draft), _ => !string.IsNullOrWhiteSpace(Draft));
-        DeleteCommand = new RelayCommand(o => Delete(o as TaskItem));
-        ClearCompletedCommand = new RelayCommand(_ => ClearCompleted(), _ => Tasks.Any(t => t.IsDone));
     }
 
     public ObservableCollection<TaskItem> Tasks { get; }
 
-    public ICollectionView VisibleTasks { get; }
-
     public AppSettings Settings { get; }
 
-    /// <summary>Text currently typed into the task box but not yet committed.</summary>
-    public string Draft
-    {
-        get => _draft;
-        set
-        {
-            if (_draft == value)
-            {
-                return;
-            }
-
-            _draft = value;
-            Raise();
-        }
-    }
-
-    public ICommand AddCommand { get; }
-
-    public ICommand DeleteCommand { get; }
-
-    public ICommand ClearCompletedCommand { get; }
-
-    public void Add(string text)
+    /// <summary>Creates a task at a point on the desktop, in device-independent pixels.</summary>
+    public TaskItem? Add(string text, double x, double y)
     {
         text = text.Trim();
         if (text.Length == 0)
         {
-            return;
+            return null;
         }
 
-        var task = new TaskItem { Text = text };
+        var task = new TaskItem { Text = text, X = x, Y = y };
         task.PropertyChanged += OnTaskChanged;
-        Tasks.Insert(0, task);
-        Draft = string.Empty;
+        Tasks.Add(task);
+        return task;
     }
 
     public void Delete(TaskItem? task)
@@ -104,27 +68,12 @@ internal sealed class TaskListViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>Re-applies the wallpaper filter after a settings change.</summary>
-    public void RefreshView() => VisibleTasks.Refresh();
+    /// <summary>Writes the list out. Chips call this after a drag or an edit.</summary>
+    public void Persist() => _store.Save(Tasks);
 
     public void SaveSettings() => _settingsStore.Save(Settings);
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => Persist();
 
-    private void OnTaskChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(TaskItem.IsDone) && Settings.HideCompleted)
-        {
-            VisibleTasks.Refresh();
-        }
-
-        Persist();
-    }
-
-    private void Persist() => _store.Save(Tasks);
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void Raise([CallerMemberName] string? name = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+    private void OnTaskChanged(object? sender, PropertyChangedEventArgs e) => Persist();
 }

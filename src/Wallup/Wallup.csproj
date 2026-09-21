@@ -22,6 +22,7 @@
     <!-- WinForms is only used for the tray icon, and is fully qualified there. Leaving it
          in the global usings makes Application and KeyEventArgs ambiguous against WPF. -->
     <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
 
 </Project>

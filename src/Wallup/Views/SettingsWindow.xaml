@@ -4,46 +4,42 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Wallup settings"
         WindowStyle="None"
-        AllowsTransparency="True"
+        AllowsTransparency="False"
         Background="Transparent"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         SizeToContent="Height"
-        Width="330"
+        Width="320"
         Topmost="True"
         WindowStartupLocation="CenterScreen">
 
-    <!-- The differentiator from Rainmeter: these are sliders, not an .ini file. Every
-         change is applied to the wallpaper layer live and written on close. -->
-    <Border Style="{StaticResource BoxChrome}" Background="#F00F1319" MouseLeftButtonDown="OnDrag">
+    <!-- The differentiator from Rainmeter: sliders, not an .ini file. Every change lands
+         on the chips live and is written out when the panel closes. -->
+    <Grid Margin="16,14,16,14" MouseLeftButtonDown="OnDrag">
         <StackPanel>
 
-            <TextBlock Style="{StaticResource Caption}" Text="APPEARANCE"
-                       FontWeight="SemiBold" Margin="0,0,0,14" />
+            <Grid Margin="0,0,0,14">
+                <TextBlock Style="{StaticResource Caption}" Text="APPEARANCE" FontWeight="SemiBold" />
+                <Button Style="{StaticResource GhostButton}" Content="done"
+                        HorizontalAlignment="Right" Click="OnDoneClick" />
+            </Grid>
 
             <TextBlock Style="{StaticResource Caption}" Text="Opacity" />
-            <Slider Minimum="0.15" Maximum="1.0" Value="{Binding Settings.Opacity}"
+            <Slider Minimum="0.25" Maximum="1.0" Value="{Binding Settings.Opacity}"
                     Margin="0,4,0,14" />
 
             <TextBlock Style="{StaticResource Caption}" Text="Text size" />
-            <Slider Minimum="9" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True"
+            <Slider Minimum="9" Maximum="28" TickFrequency="1" IsSnapToTickEnabled="True"
                     Value="{Binding Settings.FontSize}" Margin="0,4,0,14" />
 
-            <TextBlock Style="{StaticResource Caption}" Text="Position from left" />
-            <Slider Minimum="0" Maximum="3000" TickFrequency="8" IsSnapToTickEnabled="True"
-                    Value="{Binding Settings.AnchorX}" Margin="0,4,0,14" />
+            <TextBlock Style="{StaticResource Caption}" Text="Chip width" />
+            <Slider Minimum="140" Maximum="520" TickFrequency="10" IsSnapToTickEnabled="True"
+                    Value="{Binding Settings.ChipWidth}" Margin="0,4,0,14" />
 
-            <TextBlock Style="{StaticResource Caption}" Text="Position from top" />
-            <Slider Minimum="0" Maximum="1600" TickFrequency="8" IsSnapToTickEnabled="True"
-                    Value="{Binding Settings.AnchorY}" Margin="0,4,0,14" />
-
-            <CheckBox Content="Hide finished tasks from the wallpaper"
+            <CheckBox Content="Take finished tasks off the desktop"
                       Foreground="{StaticResource InkMuted}" FontSize="12"
-                      IsChecked="{Binding Settings.HideCompleted}" Margin="0,0,0,16" />
-
-            <Button Style="{StaticResource GhostButton}" Content="done"
-                    HorizontalAlignment="Right" Click="OnDoneClick" />
+                      IsChecked="{Binding Settings.HideCompleted}" />
 
         </StackPanel>
-    </Border>
+    </Grid>
 </Window>

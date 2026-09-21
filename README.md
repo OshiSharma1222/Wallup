@@ -2,42 +2,55 @@
 
 > Your wallpaper is your to-do list. Right-click, drop a task, get on with your day.
 
-Wallup renders your tasks onto the desktop wallpaper, behind the icons, and lets you add
-one by right-clicking empty desktop. See [docs/IDEA.md](docs/IDEA.md) for the product
-thinking.
+Right-click empty desktop, type a task, hit Enter. It drops onto the desktop as a small
+glass chip you can drag anywhere, tick off, set an alarm on, or delete. See
+[docs/IDEA.md](docs/IDEA.md) for the product thinking.
 
-**Status: v0.1 in progress.** The desktop-layer spike is done and passing on Windows 11
-build 26200. See [docs/SPIKE-WORKERW.md](docs/SPIKE-WORKERW.md) for what it proved.
+**Status: v0.2.** The core loop works end to end. See *What is verified* below for exactly
+what has been seen working and what has not.
 
 ## Stack
 
-C# / .NET 9 / WPF, Windows-only. The entire product risk is Win32 desktop-layer surgery,
-which is why the stack is the one with first-class P/Invoke and a readable reference
-implementation ([Lively Wallpaper](https://github.com/rocksdanister/lively)) to compare
-against. Cross-platform frameworks buy nothing here: the desktop-layer mechanism has to be
-rewritten per OS regardless.
+C# / .NET 9 / WPF, Windows-only. The whole product risk is Win32 desktop integration,
+which is why the stack is the one with first-class P/Invoke.
 
 ## Architecture
 
-The wallpaper layer cannot receive mouse input, because `SHELLDLL_DefView` covers the
-whole desktop and eats every click before it reaches anything behind it. So the gesture is
-split across two windows plus a hook:
+The central constraint, learned the hard way: **the wallpaper layer receives no mouse
+input.** `SHELLDLL_DefView` covers the entire desktop and eats every click before it can
+reach anything painted behind it. Dragging, ticking, alarms and delete buttons are all
+impossible there.
+
+So tasks are not pixels on the wallpaper. Each task is its own real window.
 
 | Piece | File | Job |
 | --- | --- | --- |
-| Ambient layer | `Views/AmbientWindow.xaml` | Render-only, parented into the shell, painted behind the icons. Never takes input. |
-| Task box | `Views/TaskBoxWindow.xaml` | Normal top-level window. Appears at the cursor, takes focus, closes when it loses it. |
-| Gesture | `Interop/DesktopRightClickHook.cs` | Global `WH_MOUSE_LL` hook. Detects a right-click on empty desktop and swallows it. |
-| Shell surgery | `Interop/DesktopLayer.cs` | Finds the wallpaper host and slots us in behind the icons. |
+| Chip | `Views/ChipWindow.xaml` | One window per task. Drag to move, double-click to edit, tick, alarm, delete. |
+| Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on right-click. Takes one line, then gets out of the way. |
+| Chip host | `Views/ChipHost.cs` | Keeps chip windows in sync with the task list and fires alarms. |
+| Gesture | `Interop/DesktopRightClickHook.cs` | Global `WH_MOUSE_LL` hook. Swallows a desktop right-click. |
+| Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above Progman: over the wallpaper, under real windows. |
+| Glass | `Interop/Glass.cs` | Windows 11 acrylic via DWM. |
 
-Both windows bind to the same `TaskListViewModel`, which is why an edit in the box shows
-up on the wallpaper with nothing being regenerated.
+### Three traps worth knowing
+
+- **Never pin to `HWND_BOTTOM`.** The bottom of the z-order is *below* Progman, which puts
+  the window under the desktop and makes it invisible. Insert directly above Progman
+  instead, and re-assert it on `WM_WINDOWPOSCHANGING`, because clicking a window normally
+  raises it.
+- **Acrylic needs a non-layered window.** `AllowsTransparency="True"` makes a WPF window
+  layered, and DWM refuses to draw a backdrop behind a layered window. These windows use
+  `AllowsTransparency="False"` with a transparent background instead. This is the usual
+  reason acrylic silently does nothing.
+- **Swallow both halves of the right-click.** Letting `WM_RBUTTONUP` through hands focus
+  back to the shell, which deactivates the composer the instant it opens; it flashes and
+  vanishes, and the *next* click appears to open it late.
 
 ### The right-click conflict
 
-Plain right-click on empty desktop opens Wallup and the Windows context menu is
-suppressed. **Hold Shift to get the normal Windows menu.** That escape hatch matters: a
-global hook that eats right-clicks with no way out is hostile.
+Plain right-click on empty desktop opens Wallup and suppresses the Windows context menu.
+**Hold Shift for the normal Windows menu.** A global hook that eats right-clicks with no
+way out is hostile.
 
 ## Running it
 
@@ -46,57 +59,39 @@ dotnet build
 dotnet run --project src/Wallup
 ```
 
-Two diagnostic modes, because a window parented into the wrong place is invisible rather
-than broken — it just never appears, with no error anywhere:
+Diagnostics, because shell integration fails invisibly rather than loudly:
 
 ```
 Wallup.exe --diagnose    # dump the shell window tree and exit
-Wallup.exe --selftest    # attach for real, report where we landed, exit
 ```
 
-`--selftest` is the one that matters. It reports the z-order of the ambient window against
-`SHELLDLL_DefView` and prints one of:
+Logs go to `%LOCALAPPDATA%\Wallup\logs\wallup.log`; a line there records whether acrylic
+was accepted. Tasks and settings live in `%APPDATA%\Wallup\`.
 
-- `OK - behind the desktop icons.`
-- `IN FRONT - on the wallpaper layer but painted over the icons.`
-- `FAIL - not parented into the shell at all.`
+## What is verified
 
-Logs go to `%LOCALAPPDATA%\Wallup\logs\wallup.log`. Tasks and settings live in
-`%APPDATA%\Wallup\`.
+Seen working on Windows 11 build 26200, in screenshots:
 
-## Where the data lives
+- [x] Chips render on the desktop with real acrylic, above the wallpaper
+- [x] Right-click empty desktop opens the composer at the cursor, and it stays open
+- [x] Type + Enter drops a new chip at that exact spot
+- [x] Tasks persist across restarts, including position
+- [x] Checkbox state and strikethrough
 
-| Path | Contents |
-| --- | --- |
-| `%APPDATA%\Wallup\tasks.json` | The task list. Written via temp-file-and-replace. |
-| `%APPDATA%\Wallup\settings.json` | Opacity, text size, box position. |
-| `%LOCALAPPDATA%\Wallup\logs\wallup.log` | Shell probe results and attach outcomes. |
+Built but **not yet confirmed by a human**, because they need real hover and drag:
 
-## v0.1 checklist
-
-Nothing here is finished. The window attaches to the right place in the shell and then
-fails to draw, so no part of the UI has been exercised on screen yet.
-
-- [x] Ambient window parents into the shell, ordered behind the icon view
-- [ ] **Ambient box actually paints** — attaches correctly, renders nothing. Tested both
-      layered and opaque; neither appears. Suspect DWM does not composite arbitrary child
-      HWNDs of Progman on Windows 11
-- [ ] **Right-click gesture fires** — `SetWindowsHookEx` succeeds but the callback is never
-      invoked, and the shell still shows its own context menu
-- [ ] Add, edit, check off, delete a task — written, never exercised on screen
-- [ ] Tasks persist locally between sessions — written, never exercised on screen
-- [ ] Basic customization: opacity, font size, box position — written, never exercised
-- [ ] Survive an Explorer restart without a manual reattach
-- [ ] Multi-monitor placement
-
-> **On `--selftest`:** it reports `OK - behind the desktop icons` while the box is
-> invisible. It inspects window handles and z-order, not pixels. A pass means the attach
-> worked, nothing more. Do not read it as the product working.
+- [ ] Dragging a chip to reposition it
+- [ ] Double-click to edit a chip in place
+- [ ] Clock button, setting an alarm, the chip pulsing when it comes due
+- [ ] Delete button
+- [ ] Settings panel sliders
 
 ## Known gaps
 
-- **Explorer restart orphans the ambient window.** Tray menu has a manual *Reattach to
-  wallpaper*. Watching for the shell's `TaskbarCreated` message is the real fix.
-- **Right-clicking a desktop icon also opens Wallup.** The hit test sees `SysListView32`
-  for both empty space and icons; it needs a `LVM_HITTEST` to tell them apart.
-- **Single monitor only.** Placement is computed against the Progman rect.
+- Right-clicking a desktop *icon* also opens Wallup. Both hit `SysListView32`; telling them
+  apart needs `LVM_HITTEST`.
+- `Settings.Opacity`, `FontSize` and `ChipWidth` are stored and edited but not yet applied
+  to live chips.
+- `HideCompleted` is stored but not yet acted on.
+- Single monitor. Multi-monitor placement is untested.
+- An Explorer restart may strip the z-order pinning; there is no watcher for it yet.

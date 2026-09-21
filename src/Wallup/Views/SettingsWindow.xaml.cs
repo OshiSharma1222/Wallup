@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using Wallup.Interop;
 using Wallup.ViewModels;
 
 namespace Wallup.Views;
@@ -13,6 +14,12 @@ internal partial class SettingsWindow : Window
         _viewModel = viewModel;
         DataContext = viewModel;
         InitializeComponent();
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        Glass.Apply(this);
     }
 
     private void OnDrag(object sender, MouseButtonEventArgs e)
