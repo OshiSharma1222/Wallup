@@ -1,0 +1,49 @@
+<Window x:Class="Wallup.Views.SettingsWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Wallup settings"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="Height"
+        Width="330"
+        Topmost="True"
+        WindowStartupLocation="CenterScreen">
+
+    <!-- The differentiator from Rainmeter: these are sliders, not an .ini file. Every
+         change is applied to the wallpaper layer live and written on close. -->
+    <Border Style="{StaticResource BoxChrome}" Background="#F00F1319" MouseLeftButtonDown="OnDrag">
+        <StackPanel>
+
+            <TextBlock Style="{StaticResource Caption}" Text="APPEARANCE"
+                       FontWeight="SemiBold" Margin="0,0,0,14" />
+
+            <TextBlock Style="{StaticResource Caption}" Text="Opacity" />
+            <Slider Minimum="0.15" Maximum="1.0" Value="{Binding Settings.Opacity}"
+                    Margin="0,4,0,14" />
+
+            <TextBlock Style="{StaticResource Caption}" Text="Text size" />
+            <Slider Minimum="9" Maximum="32" TickFrequency="1" IsSnapToTickEnabled="True"
+                    Value="{Binding Settings.FontSize}" Margin="0,4,0,14" />
+
+            <TextBlock Style="{StaticResource Caption}" Text="Position from left" />
+            <Slider Minimum="0" Maximum="3000" TickFrequency="8" IsSnapToTickEnabled="True"
+                    Value="{Binding Settings.AnchorX}" Margin="0,4,0,14" />
+
+            <TextBlock Style="{StaticResource Caption}" Text="Position from top" />
+            <Slider Minimum="0" Maximum="1600" TickFrequency="8" IsSnapToTickEnabled="True"
+                    Value="{Binding Settings.AnchorY}" Margin="0,4,0,14" />
+
+            <CheckBox Content="Hide finished tasks from the wallpaper"
+                      Foreground="{StaticResource InkMuted}" FontSize="12"
+                      IsChecked="{Binding Settings.HideCompleted}" Margin="0,0,0,16" />
+
+            <Button Style="{StaticResource GhostButton}" Content="done"
+                    HorizontalAlignment="Right" Click="OnDoneClick" />
+
+        </StackPanel>
+    </Border>
+</Window>
