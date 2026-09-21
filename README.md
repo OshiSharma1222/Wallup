@@ -31,6 +31,19 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | Gesture | `Interop/DesktopRightClickHook.cs` | Global `WH_MOUSE_LL` hook. Swallows a desktop right-click. |
 | Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above Progman: over the wallpaper, under real windows. |
 | Glass | `Interop/Glass.cs` | Windows 11 acrylic via DWM. |
+| Adaptive tone | `Views/AdaptiveGlass.cs` | Samples the wallpaper behind each window and picks dark or light glass. |
+| Sampler | `Interop/WallpaperSampler.cs` | Mean Rec. 709 luma of the wallpaper under a screen rectangle. |
+
+### Adaptive glass
+
+Each window samples the wallpaper behind its own rectangle and merges either
+`Views/GlassDark.xaml` or `Views/GlassLight.xaml` into its resources, so a chip on a dark
+patch is smoked with white text while one on a bright patch is frosted with dark ink.
+Every colour in `Theme.xaml` is a `DynamicResource` for exactly this reason - a
+`StaticResource` would bake in whichever palette happened to load first.
+
+The sampler reads the wallpaper bitmap rather than grabbing the screen, because by the
+time a chip asks the question it is already on screen and would sample itself.
 
 ### Three traps worth knowing
 
@@ -73,6 +86,7 @@ was accepted. Tasks and settings live in `%APPDATA%\Wallup\`.
 Seen working on Windows 11 build 26200, in screenshots:
 
 - [x] Chips render on the desktop with real acrylic, above the wallpaper
+- [x] Glass tone adapts per chip to the wallpaper behind it
 - [x] Right-click empty desktop opens the composer at the cursor, and it stays open
 - [x] Type + Enter drops a new chip at that exact spot
 - [x] Tasks persist across restarts, including position
@@ -93,5 +107,9 @@ Built but **not yet confirmed by a human**, because they need real hover and dra
 - `Settings.Opacity`, `FontSize` and `ChipWidth` are stored and edited but not yet applied
   to live chips.
 - `HideCompleted` is stored but not yet acted on.
+- A chip picks its glass tone once, when its window is created. Dragging it from a dark
+  patch to a bright one does not re-sample until restart.
+- The sampler assumes the wallpaper is scaled to fill, which is the Windows default. Tile
+  and Centre make the mapping approximate.
 - Single monitor. Multi-monitor placement is untested.
 - An Explorer restart may strip the z-order pinning; there is no watcher for it yet.
