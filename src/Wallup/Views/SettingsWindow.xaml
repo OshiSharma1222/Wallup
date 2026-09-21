@@ -9,37 +9,37 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         SizeToContent="Height"
-        Width="320"
+        Width="330"
         Topmost="True"
         WindowStartupLocation="CenterScreen">
 
-    <!-- The differentiator from Rainmeter: sliders, not an .ini file. Every change lands
-         on the chips live and is written out when the panel closes. -->
-    <Grid Margin="16,14,16,14" MouseLeftButtonDown="OnDrag">
-        <StackPanel>
+    <!-- The differentiator from Rainmeter: sliders, not an .ini file. -->
+    <Border Style="{StaticResource GlassSurface}">
+        <StackPanel Margin="18,16,18,16" MouseLeftButtonDown="OnDrag">
 
-            <Grid Margin="0,0,0,14">
+            <Grid Margin="0,0,0,16">
                 <TextBlock Style="{StaticResource Caption}" Text="APPEARANCE" FontWeight="SemiBold" />
                 <Button Style="{StaticResource GhostButton}" Content="done"
-                        HorizontalAlignment="Right" Click="OnDoneClick" />
+                        HorizontalAlignment="Right" Click="OnDoneClick"
+                        Foreground="{StaticResource Accent}" />
             </Grid>
 
             <TextBlock Style="{StaticResource Caption}" Text="Opacity" />
             <Slider Minimum="0.25" Maximum="1.0" Value="{Binding Settings.Opacity}"
-                    Margin="0,4,0,14" />
+                    Margin="0,5,0,15" />
 
             <TextBlock Style="{StaticResource Caption}" Text="Text size" />
             <Slider Minimum="9" Maximum="28" TickFrequency="1" IsSnapToTickEnabled="True"
-                    Value="{Binding Settings.FontSize}" Margin="0,4,0,14" />
+                    Value="{Binding Settings.FontSize}" Margin="0,5,0,15" />
 
             <TextBlock Style="{StaticResource Caption}" Text="Chip width" />
             <Slider Minimum="140" Maximum="520" TickFrequency="10" IsSnapToTickEnabled="True"
-                    Value="{Binding Settings.ChipWidth}" Margin="0,4,0,14" />
+                    Value="{Binding Settings.ChipWidth}" Margin="0,5,0,15" />
 
             <CheckBox Content="Take finished tasks off the desktop"
                       Foreground="{StaticResource InkMuted}" FontSize="12"
                       IsChecked="{Binding Settings.HideCompleted}" />
 
         </StackPanel>
-    </Grid>
+    </Border>
 </Window>

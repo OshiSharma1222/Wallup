@@ -45,7 +45,16 @@ internal static class Glass
     /// Applies acrylic, dark mode and rounded corners. Call after the window has a handle,
     /// which means from OnSourceInitialized or later.
     /// </summary>
-    internal static void Apply(Window window, bool smallCorners = false)
+    /// <summary>
+    /// Applies acrylic and rounded corners.
+    /// </summary>
+    /// <param name="window">The window to frost. Must already have a handle.</param>
+    /// <param name="smallCorners">Tighter corner radius, for small surfaces.</param>
+    /// <param name="light">
+    /// Light acrylic, which frosts toward white the way macOS vibrancy does, rather than
+    /// the dark smoked tint Windows defaults to. The content on top must use dark ink.
+    /// </param>
+    internal static void Apply(Window window, bool smallCorners = false, bool light = true)
     {
         var handle = new WindowInteropHelper(window).Handle;
         if (handle == IntPtr.Zero)
@@ -56,7 +65,9 @@ internal static class Glass
         // Without a transparent background WPF paints over the backdrop DWM provides.
         window.Background = System.Windows.Media.Brushes.Transparent;
 
-        var dark = 1;
+        // The immersive mode flag decides which way the acrylic tints. Off means the
+        // frost pulls toward white instead of black.
+        var dark = light ? 0 : 1;
         var darkResult = DwmSetWindowAttribute(handle, DwmUseImmersiveDarkMode, ref dark, sizeof(int));
 
         var backdrop = BackdropTransientWindow;
@@ -75,8 +86,11 @@ internal static class Glass
         {
             Log.Warn($"Acrylic unavailable (backdrop=0x{backdropResult:X}, frame=0x{frameResult:X}, " +
                      $"dark=0x{darkResult:X}, corner=0x{cornerResult:X}); falling back to a solid panel.");
+
             window.Background = new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromArgb(0xE6, 0x10, 0x12, 0x16));
+                light
+                    ? System.Windows.Media.Color.FromArgb(0xF2, 0xF4, 0xF6, 0xFA)
+                    : System.Windows.Media.Color.FromArgb(0xE6, 0x10, 0x12, 0x16));
         }
     }
 }
