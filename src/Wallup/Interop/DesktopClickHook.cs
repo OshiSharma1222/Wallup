@@ -5,17 +5,18 @@ using static Wallup.Interop.NativeMethods;
 namespace Wallup.Interop;
 
 /// <summary>
-/// The gesture. A global low-level mouse hook watches for a right-click on empty desktop,
-/// swallows it, and raises <see cref="DesktopRightClicked"/> instead.
+/// The gesture. A global low-level mouse hook watches for a left-click on empty desktop,
+/// swallows it, and raises <see cref="DesktopClicked"/> instead.
 ///
 /// Both the button-down AND the button-up have to be swallowed. Letting the up through
 /// hands focus straight back to the shell, which deactivates the composer the instant it
-/// opens - it flashes and vanishes, and the next left-click appears to open it late.
+/// opens - it flashes and vanishes, and the next click appears to open it late.
 ///
-/// Holding Shift passes the click through to the normal Windows menu, so the user is never
-/// locked out of their own desktop.
+/// Holding Shift passes the click through untouched. That matters more for left-click
+/// than it did for right: clicking bare desktop is also how you deselect icons and start
+/// a rubber-band selection, and this hook would otherwise eat both.
 /// </summary>
-internal sealed class DesktopRightClickHook : IDisposable
+internal sealed class DesktopClickHook : IDisposable
 {
     // The delegate must be rooted for as long as the hook lives, or the GC collects the
     // thunk and the next click faults inside user32.
@@ -26,9 +27,9 @@ internal sealed class DesktopRightClickHook : IDisposable
     private bool _swallowingClick;
 
     /// <summary>Raised with the screen-space click point, in physical pixels.</summary>
-    internal event Action<int, int>? DesktopRightClicked;
+    internal event Action<int, int>? DesktopClicked;
 
-    internal DesktopRightClickHook()
+    internal DesktopClickHook()
     {
         _proc = OnMouseEvent;
     }
@@ -52,7 +53,7 @@ internal sealed class DesktopRightClickHook : IDisposable
             return false;
         }
 
-        Log.Info("Desktop right-click hook installed.");
+        Log.Info("Desktop click hook installed.");
         return true;
     }
 
@@ -67,13 +68,13 @@ internal sealed class DesktopRightClickHook : IDisposable
 
         var message = wParam.ToInt32();
 
-        if (message == WM_RBUTTONUP && _swallowingClick)
+        if (message == WM_LBUTTONUP && _swallowingClick)
         {
             _swallowingClick = false;
             return new IntPtr(1);
         }
 
-        if (message != WM_RBUTTONDOWN)
+        if (message != WM_LBUTTONDOWN)
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
@@ -87,9 +88,9 @@ internal sealed class DesktopRightClickHook : IDisposable
         var hit = WindowFromPoint(data.pt);
         var onDesktop = IsEmptyDesktopAt(data.pt);
 
-        // A right-click is rare enough to log every time, and without this there is no way
-        // to tell "the hook never fired" from "the hook decided this was not the desktop".
-        Log.Info($"Right-click at {data.pt.X},{data.pt.Y} over \"{ClassNameOf(hit)}\" " +
+        // A desktop click is rare enough to log every time, and without this there is no
+        // way to tell "the hook never fired" from "the hook decided this was not desktop".
+        Log.Info($"Click at {data.pt.X},{data.pt.Y} over \"{ClassNameOf(hit)}\" " +
                  $"(root \"{ClassNameOf(GetAncestor(hit, GA_ROOT))}\") -> " +
                  $"{(onDesktop ? "opening composer" : "passing through")}.");
 
@@ -99,7 +100,7 @@ internal sealed class DesktopRightClickHook : IDisposable
         }
 
         _swallowingClick = true;
-        DesktopRightClicked?.Invoke(data.pt.X, data.pt.Y);
+        DesktopClicked?.Invoke(data.pt.X, data.pt.Y);
         return new IntPtr(1);
     }
 
@@ -134,6 +135,6 @@ internal sealed class DesktopRightClickHook : IDisposable
 
         UnhookWindowsHookEx(_hook);
         _hook = IntPtr.Zero;
-        Log.Info("Desktop right-click hook removed.");
+        Log.Info("Desktop click hook removed.");
     }
 }

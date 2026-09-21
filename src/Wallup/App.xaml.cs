@@ -14,7 +14,7 @@ public partial class App : Application
     private const string InstanceMutexName = "Wallup.SingleInstance";
 
     private Mutex? _instanceMutex;
-    private DesktopRightClickHook? _hook;
+    private DesktopClickHook? _hook;
     private System.Windows.Forms.NotifyIcon? _tray;
     private TaskListViewModel? _viewModel;
     private ChipHost? _chips;
@@ -66,8 +66,8 @@ public partial class App : Application
 
     private void InstallHook()
     {
-        _hook = new DesktopRightClickHook();
-        _hook.DesktopRightClicked += (x, y) =>
+        _hook = new DesktopClickHook();
+        _hook.DesktopClicked += (x, y) =>
         {
             // The hook callback must return immediately, so hand the UI work to the
             // dispatcher rather than opening a window inline.
@@ -76,7 +76,7 @@ public partial class App : Application
 
         if (!_hook.Install())
         {
-            Log.Warn("Right-click gesture unavailable; the tray menu is the only way in.");
+            Log.Warn("Desktop click gesture unavailable; the tray menu is the only way in.");
         }
     }
 

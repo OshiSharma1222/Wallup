@@ -120,6 +120,8 @@ internal static class NativeMethods
     internal static extern IntPtr GetModuleHandle(string? lpModuleName);
 
     internal const int WH_MOUSE_LL = 14;
+    internal const int WM_LBUTTONDOWN = 0x0201;
+    internal const int WM_LBUTTONUP = 0x0202;
     internal const int WM_RBUTTONDOWN = 0x0204;
     internal const int WM_RBUTTONUP = 0x0205;
 
