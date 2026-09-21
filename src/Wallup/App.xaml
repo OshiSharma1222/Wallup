@@ -5,6 +5,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Views/GlassDark.xaml" />
                 <ResourceDictionary Source="Views/Theme.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
