@@ -3,11 +3,17 @@ using System.Runtime.CompilerServices;
 
 namespace Wallup.Models;
 
-/// <summary>A single line on the wallpaper.</summary>
+/// <summary>
+/// A single task. Each one owns its position on the desktop, because a task is its own
+/// little window rather than a line in a shared list.
+/// </summary>
 internal sealed class TaskItem : INotifyPropertyChanged
 {
     private string _text = string.Empty;
     private bool _isDone;
+    private double _x;
+    private double _y;
+    private DateTimeOffset? _alarmAt;
 
     public Guid Id { get; init; } = Guid.NewGuid();
 
@@ -29,6 +35,38 @@ internal sealed class TaskItem : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Where the chip sits, in device-independent pixels from the desktop origin.</summary>
+    public double X
+    {
+        get => _x;
+        set => Set(ref _x, value);
+    }
+
+    public double Y
+    {
+        get => _y;
+        set => Set(ref _y, value);
+    }
+
+    /// <summary>When set, the chip announces itself at this time and highlights.</summary>
+    public DateTimeOffset? AlarmAt
+    {
+        get => _alarmAt;
+        set
+        {
+            if (Set(ref _alarmAt, value))
+            {
+                HasFired = false;
+                Raise(nameof(HasAlarm));
+            }
+        }
+    }
+
+    public bool HasAlarm => AlarmAt is not null;
+
+    /// <summary>Stops one alarm being announced on every timer tick after it comes due.</summary>
+    public bool HasFired { get; set; }
+
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.Now;
 
     public DateTimeOffset? CompletedAt { get; set; }
@@ -43,7 +81,10 @@ internal sealed class TaskItem : INotifyPropertyChanged
         }
 
         field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        Raise(name);
         return true;
     }
+
+    private void Raise(string? name) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
