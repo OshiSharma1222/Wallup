@@ -14,30 +14,30 @@
         WindowStartupLocation="CenterScreen">
 
     <!-- The differentiator from Rainmeter: sliders, not an .ini file. -->
-    <Border Style="{StaticResource GlassSurface}">
+    <Border Style="{DynamicResource GlassSurface}">
         <StackPanel Margin="18,16,18,16" MouseLeftButtonDown="OnDrag">
 
             <Grid Margin="0,0,0,16">
-                <TextBlock Style="{StaticResource Caption}" Text="APPEARANCE" FontWeight="SemiBold" />
-                <Button Style="{StaticResource GhostButton}" Content="done"
+                <TextBlock Style="{DynamicResource Caption}" Text="APPEARANCE" FontWeight="SemiBold" />
+                <Button Style="{DynamicResource GhostButton}" Content="done"
                         HorizontalAlignment="Right" Click="OnDoneClick"
-                        Foreground="{StaticResource Accent}" />
+                        Foreground="{DynamicResource Accent}" />
             </Grid>
 
-            <TextBlock Style="{StaticResource Caption}" Text="Opacity" />
+            <TextBlock Style="{DynamicResource Caption}" Text="Opacity" />
             <Slider Minimum="0.25" Maximum="1.0" Value="{Binding Settings.Opacity}"
                     Margin="0,5,0,15" />
 
-            <TextBlock Style="{StaticResource Caption}" Text="Text size" />
+            <TextBlock Style="{DynamicResource Caption}" Text="Text size" />
             <Slider Minimum="9" Maximum="28" TickFrequency="1" IsSnapToTickEnabled="True"
                     Value="{Binding Settings.FontSize}" Margin="0,5,0,15" />
 
-            <TextBlock Style="{StaticResource Caption}" Text="Chip width" />
+            <TextBlock Style="{DynamicResource Caption}" Text="Chip width" />
             <Slider Minimum="140" Maximum="520" TickFrequency="10" IsSnapToTickEnabled="True"
                     Value="{Binding Settings.ChipWidth}" Margin="0,5,0,15" />
 
             <CheckBox Content="Take finished tasks off the desktop"
-                      Foreground="{StaticResource InkMuted}" FontSize="12"
+                      Foreground="{DynamicResource InkMuted}" FontSize="12"
                       IsChecked="{Binding Settings.HideCompleted}" />
 
         </StackPanel>

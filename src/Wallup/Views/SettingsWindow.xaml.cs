@@ -19,7 +19,7 @@ internal partial class SettingsWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        Glass.Apply(this);
+        AdaptiveGlass.Apply(this);
     }
 
     private void OnDrag(object sender, MouseButtonEventArgs e)

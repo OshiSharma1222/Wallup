@@ -13,10 +13,10 @@
         Topmost="True"
         WindowStartupLocation="Manual">
 
-    <Border Style="{StaticResource GlassSurface}">
+    <Border Style="{DynamicResource GlassSurface}">
         <Grid>
             <Border VerticalAlignment="Top" Height="18" CornerRadius="10,10,0,0"
-                    Background="{StaticResource TopLight}" IsHitTestVisible="False" />
+                    Background="{DynamicResource TopLight}" IsHitTestVisible="False" />
 
         <Grid Margin="16,13,16,13">
             <Grid.RowDefinitions>
@@ -26,14 +26,14 @@
             </Grid.RowDefinitions>
 
             <TextBox Grid.Row="0" x:Name="Input"
-                     Style="{StaticResource GlassText}"
+                     Style="{DynamicResource GlassText}"
                      FontSize="16"
                      KeyDown="OnInputKeyDown" />
 
             <Rectangle Grid.Row="1" Height="1" Margin="0,9,0,0"
-                       Fill="{StaticResource Hairline}" />
+                       Fill="{DynamicResource Hairline}" />
 
-            <TextBlock Grid.Row="2" Style="{StaticResource Caption}" Margin="0,8,0,0"
+            <TextBlock Grid.Row="2" Style="{DynamicResource Caption}" Margin="0,8,0,0"
                        Text="enter to drop it on the desktop  ·  esc to cancel" />
         </Grid>
         </Grid>

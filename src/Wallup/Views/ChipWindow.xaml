@@ -14,10 +14,10 @@
 
     <!-- AllowsTransparency stays False so DWM will paint acrylic behind us. A layered
          window gets no backdrop, which is the usual reason glass silently does nothing. -->
-    <Border Style="{StaticResource GlassSurface}">
+    <Border Style="{DynamicResource GlassSurface}">
         <Grid>
             <Border VerticalAlignment="Top" Height="18" CornerRadius="10,10,0,0"
-                    Background="{StaticResource TopLight}" IsHitTestVisible="False" />
+                    Background="{DynamicResource TopLight}" IsHitTestVisible="False" />
 
         <Grid x:Name="Root" Margin="12,9,10,10" MouseLeftButtonDown="OnDragStart">
             <Grid.ColumnDefinitions>
@@ -26,18 +26,18 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <CheckBox Grid.Column="0" Style="{StaticResource TaskCheck}"
+            <CheckBox Grid.Column="0" Style="{DynamicResource TaskCheck}"
                       IsChecked="{Binding IsDone}" Margin="0,1,10,0"
                       VerticalAlignment="Top" />
 
             <!-- Label at rest, editor on double-click. Swapping beats one TextBox with a
                  transparent background, which still paints its own panel on the glass. -->
             <Grid Grid.Column="1">
-                <TextBlock x:Name="Label" Style="{StaticResource ChipLabel}"
+                <TextBlock x:Name="Label" Style="{DynamicResource ChipLabel}"
                            Text="{Binding Text}" FontSize="14"
                            MouseLeftButtonDown="OnLabelClick" />
 
-                <TextBox x:Name="Editor" Style="{StaticResource GlassText}"
+                <TextBox x:Name="Editor" Style="{DynamicResource GlassText}"
                          Text="{Binding Text, UpdateSourceTrigger=LostFocus}"
                          FontSize="14" TextWrapping="Wrap" AcceptsReturn="False"
                          VerticalAlignment="Center" Visibility="Collapsed"
@@ -47,16 +47,16 @@
             <!-- Controls stay out of the way until the chip is hovered. -->
             <StackPanel Grid.Column="2" x:Name="Actions" Orientation="Horizontal"
                         VerticalAlignment="Top" Margin="8,0,0,0" Opacity="0">
-                <Button Style="{StaticResource GhostButton}" Click="OnClockClick"
+                <Button Style="{DynamicResource GhostButton}" Click="OnClockClick"
                         ToolTip="Set an alarm" Padding="3,1">
                     <Path Width="13" Height="13" Stretch="Uniform"
-                          Stroke="{StaticResource InkMuted}" StrokeThickness="1.4"
+                          Stroke="{DynamicResource InkMuted}" StrokeThickness="1.4"
                           Data="M 8,1 A 7,7 0 1 1 7.99,1 Z M 8,4 L 8,8 L 11,10" />
                 </Button>
-                <Button Style="{StaticResource GhostButton}" Click="OnDeleteClick"
+                <Button Style="{DynamicResource GhostButton}" Click="OnDeleteClick"
                         ToolTip="Delete" Padding="3,1">
                     <Path Width="10" Height="10" Stretch="Uniform"
-                          Stroke="{StaticResource InkMuted}" StrokeThickness="1.6"
+                          Stroke="{DynamicResource InkMuted}" StrokeThickness="1.6"
                           StrokeEndLineCap="Round"
                           Data="M 1,1 L 11,11 M 11,1 L 1,11" />
                 </Button>
@@ -66,24 +66,24 @@
             <Popup x:Name="AlarmPopup" PlacementTarget="{Binding ElementName=Actions}"
                    Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
                    HorizontalOffset="-70" VerticalOffset="6">
-                <Border Background="#F2F7F9FC" CornerRadius="10" Padding="12"
-                        BorderBrush="#40000000" BorderThickness="1">
+                <Border Background="{DynamicResource PopupBack}" CornerRadius="10" Padding="12"
+                        BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource Caption}" Text="ALARM AT"
+                        <TextBlock Style="{DynamicResource Caption}" Text="ALARM AT"
                                    FontWeight="SemiBold" Margin="0,0,0,7" />
-                        <Border Background="#14101418" CornerRadius="7" Padding="8,5">
+                        <Border Background="{DynamicResource FieldBack}" CornerRadius="7" Padding="8,5">
                             <TextBox x:Name="AlarmInput" Width="86" FontSize="15"
-                                     Style="{StaticResource GlassText}"
+                                     Style="{DynamicResource GlassText}"
                                      KeyDown="OnAlarmKeyDown" />
                         </Border>
-                        <TextBlock Style="{StaticResource Caption}" Text="24h, e.g. 14:30"
+                        <TextBlock Style="{DynamicResource Caption}" Text="24h, e.g. 14:30"
                                    Margin="0,6,0,0" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                                     Margin="0,9,0,0">
-                            <Button Style="{StaticResource GhostButton}" Content="clear"
+                            <Button Style="{DynamicResource GhostButton}" Content="clear"
                                     Click="OnAlarmClear" />
-                            <Button Style="{StaticResource GhostButton}" Content="set"
-                                    Click="OnAlarmSet" Foreground="{StaticResource Accent}" />
+                            <Button Style="{DynamicResource GhostButton}" Content="set"
+                                    Click="OnAlarmSet" Foreground="{DynamicResource Accent}" />
                         </StackPanel>
                     </StackPanel>
                 </Border>

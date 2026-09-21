@@ -40,7 +40,7 @@ internal partial class ChipWindow : Window
         base.OnSourceInitialized(e);
 
         DesktopWindow.Pin(this);
-        Glass.Apply(this, smallCorners: true);
+        AdaptiveGlass.Apply(this, smallCorners: true);
     }
 
     private void FadeActions(double to) =>

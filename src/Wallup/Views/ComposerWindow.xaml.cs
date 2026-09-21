@@ -29,7 +29,7 @@ internal partial class ComposerWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        Glass.Apply(this);
+        AdaptiveGlass.Apply(this);
     }
 
     /// <summary>Opens the composer at a screen point given in physical pixels.</summary>
