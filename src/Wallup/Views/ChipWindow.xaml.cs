@@ -61,6 +61,11 @@ internal partial class ChipWindow : Window
 
         _task.X = Left;
         _task.Y = Top;
+
+        // Dropped somewhere new, so the wallpaper underneath may have flipped from dark
+        // to light or back.
+        AdaptiveGlass.Apply(this, smallCorners: true);
+
         Changed?.Invoke();
     }
 

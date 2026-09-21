@@ -14,25 +14,43 @@ namespace Wallup.Views;
 /// </summary>
 internal static class AdaptiveGlass
 {
-    /// <summary>Applies the palette and the DWM backdrop. Call from OnSourceInitialized.</summary>
+    private const string DarkPalette = "Views/GlassDark.xaml";
+    private const string LightPalette = "Views/GlassLight.xaml";
+
+    /// <summary>
+    /// Applies the palette and the DWM backdrop for wherever the window currently sits.
+    /// Safe to call again after the window moves; it swaps the palette rather than
+    /// stacking a second one. Call it once the window has a handle AND its final position,
+    /// because sampling before the move reads the wallpaper under the old spot.
+    /// </summary>
     internal static bool Apply(Window window, bool smallCorners = false)
     {
         var light = IsOverLightWallpaper(window);
+        var wanted = light ? LightPalette : DarkPalette;
 
-        var palette = new ResourceDictionary
+        var merged = window.Resources.MergedDictionaries;
+        var current = merged.FirstOrDefault(d => d.Source is not null && IsPalette(d.Source));
+
+        if (current?.Source is not null && current.Source.OriginalString == wanted)
         {
-            Source = new Uri(
-                light ? "Views/GlassLight.xaml" : "Views/GlassDark.xaml",
-                UriKind.Relative),
-        };
+            return light; // already wearing the right one
+        }
+
+        if (current is not null)
+        {
+            merged.Remove(current);
+        }
 
         // Window-level resources win over the app-level ones for DynamicResource lookups,
         // so this repaints everything inside without touching any other window.
-        window.Resources.MergedDictionaries.Add(palette);
+        merged.Add(new ResourceDictionary { Source = new Uri(wanted, UriKind.Relative) });
 
         Glass.Apply(window, smallCorners, light);
         return light;
     }
+
+    private static bool IsPalette(Uri source) =>
+        source.OriginalString is DarkPalette or LightPalette;
 
     private static bool IsOverLightWallpaper(Window window)
     {

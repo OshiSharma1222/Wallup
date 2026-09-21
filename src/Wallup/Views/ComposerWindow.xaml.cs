@@ -49,6 +49,10 @@ internal partial class ComposerWindow : Window
 
         _shownAt = DateTime.Now;
 
+        // OnSourceInitialized ran before this move, so it sampled the wallpaper under the
+        // window's default spot. Now that it is where the click was, ask again.
+        AdaptiveGlass.Apply(this);
+
         Activate();
         Input.Focus();
         Keyboard.Focus(Input);
