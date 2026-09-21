@@ -51,13 +51,8 @@ internal partial class ChipWindow : Window
 
     private void OnDragStart(object sender, MouseButtonEventArgs e)
     {
-        // While the text box is being edited, a click belongs to the caret, not the drag.
-        if (!Text.IsReadOnly)
-        {
-            return;
-        }
-
-        if (e.ButtonState != MouseButtonState.Pressed)
+        // While the editor is open a click belongs to the caret, not to the drag.
+        if (Editor.Visibility == Visibility.Visible || e.ButtonState != MouseButtonState.Pressed)
         {
             return;
         }
@@ -69,17 +64,30 @@ internal partial class ChipWindow : Window
         Changed?.Invoke();
     }
 
-    // ---- Inline editing ---------------------------------------------------
-
-    private void OnBeginEdit(object sender, MouseButtonEventArgs e)
+    /// <summary>A double-click on the label opens the editor; a single click still drags.</summary>
+    private void OnLabelClick(object sender, MouseButtonEventArgs e)
     {
-        Text.IsReadOnly = false;
-        Text.Focus();
-        Text.SelectAll();
-        e.Handled = true;
+        if (e.ClickCount >= 2)
+        {
+            BeginEdit();
+            e.Handled = true;
+            return;
+        }
+
+        OnDragStart(sender, e);
     }
 
-    private void OnTextKeyDown(object sender, KeyEventArgs e)
+    private void BeginEdit()
+    {
+        Label.Visibility = Visibility.Collapsed;
+        Editor.Visibility = Visibility.Visible;
+        Editor.Focus();
+        Editor.SelectAll();
+    }
+
+    // ---- Inline editing ---------------------------------------------------
+
+    private void OnEditorKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key is not (Key.Enter or Key.Escape))
         {
@@ -93,8 +101,8 @@ internal partial class ChipWindow : Window
 
     private void OnEndEdit(object sender, RoutedEventArgs e)
     {
-        Text.IsReadOnly = true;
-        Text.CaretIndex = 0;
+        Editor.Visibility = Visibility.Collapsed;
+        Label.Visibility = Visibility.Visible;
         Changed?.Invoke();
     }
 

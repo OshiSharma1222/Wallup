@@ -9,84 +9,86 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         SizeToContent="Height"
-        Width="240"
+        Width="250"
         WindowStartupLocation="Manual">
 
     <!-- AllowsTransparency stays False so DWM will paint acrylic behind us. A layered
          window gets no backdrop, which is the usual reason glass silently does nothing. -->
-    <Grid x:Name="Root" Margin="10,7,8,8" MouseLeftButtonDown="OnDragStart">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
+    <Border Style="{StaticResource GlassSurface}">
+        <Grid>
+            <Border VerticalAlignment="Top" Height="18" CornerRadius="10,10,0,0"
+                    Background="{StaticResource TopLight}" IsHitTestVisible="False" />
 
-        <CheckBox Grid.Column="0" Style="{StaticResource TaskCheck}"
-                  IsChecked="{Binding IsDone}" Margin="0,2,9,0"
-                  VerticalAlignment="Top" />
+        <Grid x:Name="Root" Margin="12,9,10,10" MouseLeftButtonDown="OnDragStart">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-        <TextBox Grid.Column="1" x:Name="Text"
-                 Text="{Binding Text, UpdateSourceTrigger=LostFocus}"
-                 Background="Transparent" BorderThickness="0" Padding="0"
-                 Foreground="{StaticResource Ink}"
-                 CaretBrush="{StaticResource Accent}"
-                 TextWrapping="Wrap" AcceptsReturn="False"
-                 VerticalAlignment="Center"
-                 IsReadOnly="True"
-                 MouseDoubleClick="OnBeginEdit"
-                 KeyDown="OnTextKeyDown"
-                 LostFocus="OnEndEdit">
-            <TextBox.Style>
-                <Style TargetType="TextBox">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsDone}" Value="True">
-                            <Setter Property="Opacity" Value="0.45" />
-                            <Setter Property="TextDecorations" Value="Strikethrough" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBox.Style>
-        </TextBox>
+            <CheckBox Grid.Column="0" Style="{StaticResource TaskCheck}"
+                      IsChecked="{Binding IsDone}" Margin="0,1,10,0"
+                      VerticalAlignment="Top" />
 
-        <!-- Controls stay out of the way until the chip is hovered or has an alarm set. -->
-        <StackPanel Grid.Column="2" x:Name="Actions" Orientation="Horizontal"
-                    VerticalAlignment="Top" Margin="6,0,0,0" Opacity="0">
-            <Button Style="{StaticResource GhostButton}" Click="OnClockClick"
-                    ToolTip="Set an alarm" Padding="3,0">
-                <Path Width="13" Height="13" Stretch="Uniform" Stroke="{StaticResource InkMuted}"
-                      StrokeThickness="1.4"
-                      Data="M 8,1 A 7,7 0 1 1 7.99,1 Z M 8,4 L 8,8 L 11,10" />
-            </Button>
-            <Button Style="{StaticResource GhostButton}" Click="OnDeleteClick"
-                    ToolTip="Delete" Padding="3,0">
-                <Path Width="11" Height="11" Stretch="Uniform" Stroke="{StaticResource InkMuted}"
-                      StrokeThickness="1.6" StrokeEndLineCap="Round"
-                      Data="M 1,1 L 11,11 M 11,1 L 1,11" />
-            </Button>
-        </StackPanel>
+            <!-- Label at rest, editor on double-click. Swapping beats one TextBox with a
+                 transparent background, which still paints its own panel on the glass. -->
+            <Grid Grid.Column="1">
+                <TextBlock x:Name="Label" Style="{StaticResource ChipLabel}"
+                           Text="{Binding Text}" FontSize="14"
+                           MouseLeftButtonDown="OnLabelClick" />
 
-        <!-- Alarm editor, opened by the clock button. -->
-        <Popup x:Name="AlarmPopup" PlacementTarget="{Binding ElementName=Actions}"
-               Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
-            <Border Background="#F00F1319" CornerRadius="8" Padding="10"
-                    BorderBrush="{StaticResource Hairline}" BorderThickness="1">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource Caption}" Text="ALARM AT" Margin="0,0,0,6" />
-                    <TextBox x:Name="AlarmInput" Width="92" FontSize="14"
-                             Background="#1AFFFFFF" BorderThickness="0" Padding="6,4"
-                             Foreground="{StaticResource Ink}"
-                             CaretBrush="{StaticResource Accent}"
-                             KeyDown="OnAlarmKeyDown" />
-                    <TextBlock Style="{StaticResource Caption}" Text="24h, e.g. 14:30"
-                               Margin="0,5,0,0" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                        <Button Style="{StaticResource GhostButton}" Content="clear"
-                                Click="OnAlarmClear" />
-                        <Button Style="{StaticResource GhostButton}" Content="set"
-                                Click="OnAlarmSet" />
+                <TextBox x:Name="Editor" Style="{StaticResource GlassText}"
+                         Text="{Binding Text, UpdateSourceTrigger=LostFocus}"
+                         FontSize="14" TextWrapping="Wrap" AcceptsReturn="False"
+                         VerticalAlignment="Center" Visibility="Collapsed"
+                         KeyDown="OnEditorKeyDown" LostFocus="OnEndEdit" />
+            </Grid>
+
+            <!-- Controls stay out of the way until the chip is hovered. -->
+            <StackPanel Grid.Column="2" x:Name="Actions" Orientation="Horizontal"
+                        VerticalAlignment="Top" Margin="8,0,0,0" Opacity="0">
+                <Button Style="{StaticResource GhostButton}" Click="OnClockClick"
+                        ToolTip="Set an alarm" Padding="3,1">
+                    <Path Width="13" Height="13" Stretch="Uniform"
+                          Stroke="{StaticResource InkMuted}" StrokeThickness="1.4"
+                          Data="M 8,1 A 7,7 0 1 1 7.99,1 Z M 8,4 L 8,8 L 11,10" />
+                </Button>
+                <Button Style="{StaticResource GhostButton}" Click="OnDeleteClick"
+                        ToolTip="Delete" Padding="3,1">
+                    <Path Width="10" Height="10" Stretch="Uniform"
+                          Stroke="{StaticResource InkMuted}" StrokeThickness="1.6"
+                          StrokeEndLineCap="Round"
+                          Data="M 1,1 L 11,11 M 11,1 L 1,11" />
+                </Button>
+            </StackPanel>
+
+            <!-- Alarm editor, opened by the clock button. -->
+            <Popup x:Name="AlarmPopup" PlacementTarget="{Binding ElementName=Actions}"
+                   Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                   HorizontalOffset="-70" VerticalOffset="6">
+                <Border Background="#F2F7F9FC" CornerRadius="10" Padding="12"
+                        BorderBrush="#40000000" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource Caption}" Text="ALARM AT"
+                                   FontWeight="SemiBold" Margin="0,0,0,7" />
+                        <Border Background="#14101418" CornerRadius="7" Padding="8,5">
+                            <TextBox x:Name="AlarmInput" Width="86" FontSize="15"
+                                     Style="{StaticResource GlassText}"
+                                     KeyDown="OnAlarmKeyDown" />
+                        </Border>
+                        <TextBlock Style="{StaticResource Caption}" Text="24h, e.g. 14:30"
+                                   Margin="0,6,0,0" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                    Margin="0,9,0,0">
+                            <Button Style="{StaticResource GhostButton}" Content="clear"
+                                    Click="OnAlarmClear" />
+                            <Button Style="{StaticResource GhostButton}" Content="set"
+                                    Click="OnAlarmSet" Foreground="{StaticResource Accent}" />
+                        </StackPanel>
                     </StackPanel>
-                </StackPanel>
-            </Border>
-        </Popup>
-    </Grid>
+                </Border>
+            </Popup>
+        </Grid>
+        </Grid>
+    </Border>
 </Window>
