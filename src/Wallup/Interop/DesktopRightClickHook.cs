@@ -84,7 +84,16 @@ internal sealed class DesktopRightClickHook : IDisposable
         }
 
         var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-        if (!IsEmptyDesktopAt(data.pt))
+        var hit = WindowFromPoint(data.pt);
+        var onDesktop = IsEmptyDesktopAt(data.pt);
+
+        // A right-click is rare enough to log every time, and without this there is no way
+        // to tell "the hook never fired" from "the hook decided this was not the desktop".
+        Log.Info($"Right-click at {data.pt.X},{data.pt.Y} over \"{ClassNameOf(hit)}\" " +
+                 $"(root \"{ClassNameOf(GetAncestor(hit, GA_ROOT))}\") -> " +
+                 $"{(onDesktop ? "opening composer" : "passing through")}.");
+
+        if (!onDesktop)
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
