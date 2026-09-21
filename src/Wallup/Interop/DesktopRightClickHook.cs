@@ -5,13 +5,15 @@ using static Wallup.Interop.NativeMethods;
 namespace Wallup.Interop;
 
 /// <summary>
-/// The gesture. A global low-level mouse hook watches for a right-click that lands on
-/// empty desktop, swallows it, and raises <see cref="DesktopRightClicked"/> instead.
+/// The gesture. A global low-level mouse hook watches for a right-click on empty desktop,
+/// swallows it, and raises <see cref="DesktopRightClicked"/> instead.
 ///
-/// We need a hook rather than a window message because the wallpaper layer sits behind
-/// SHELLDLL_DefView, which covers the whole desktop and eats every click before it can
-/// reach us. Holding Shift passes the click through to the normal Windows menu, so the
-/// user is never locked out of the shell.
+/// Both the button-down AND the button-up have to be swallowed. Letting the up through
+/// hands focus straight back to the shell, which deactivates the composer the instant it
+/// opens - it flashes and vanishes, and the next left-click appears to open it late.
+///
+/// Holding Shift passes the click through to the normal Windows menu, so the user is never
+/// locked out of their own desktop.
 /// </summary>
 internal sealed class DesktopRightClickHook : IDisposable
 {
@@ -20,7 +22,10 @@ internal sealed class DesktopRightClickHook : IDisposable
     private readonly LowLevelMouseProc _proc;
     private IntPtr _hook = IntPtr.Zero;
 
-    /// <summary>Raised on the hook thread with the screen-space click point.</summary>
+    /// <summary>True once we have swallowed a down and still owe its matching up.</summary>
+    private bool _swallowingClick;
+
+    /// <summary>Raised with the screen-space click point, in physical pixels.</summary>
     internal event Action<int, int>? DesktopRightClicked;
 
     internal DesktopRightClickHook()
@@ -38,7 +43,7 @@ internal sealed class DesktopRightClickHook : IDisposable
         }
 
         // A low-level hook is global but runs on the installing thread, so this must be
-        // called from a thread with a message pump - i.e. the WPF UI thread.
+        // called from a thread with a message pump - the WPF UI thread.
         _hook = SetWindowsHookEx(WH_MOUSE_LL, _proc, GetModuleHandle(null), 0);
 
         if (_hook == IntPtr.Zero)
@@ -53,9 +58,22 @@ internal sealed class DesktopRightClickHook : IDisposable
 
     private IntPtr OnMouseEvent(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        // Anything slow in here stalls the whole system's input, and Windows will
-        // silently evict the hook if we blow the timeout. Do the minimum, then bail.
-        if (nCode < 0 || wParam != WM_RBUTTONDOWN)
+        // Anything slow here stalls system-wide input, and Windows silently evicts a hook
+        // that blows its timeout. Do the minimum, then get out.
+        if (nCode < 0)
+        {
+            return CallNextHookEx(_hook, nCode, wParam, lParam);
+        }
+
+        var message = wParam.ToInt32();
+
+        if (message == WM_RBUTTONUP && _swallowingClick)
+        {
+            _swallowingClick = false;
+            return new IntPtr(1);
+        }
+
+        if (message != WM_RBUTTONDOWN)
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
@@ -66,29 +84,20 @@ internal sealed class DesktopRightClickHook : IDisposable
         }
 
         var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-        var isDesktop = IsEmptyDesktopAt(data.pt);
-
-        var hit = WindowFromPoint(data.pt);
-        Log.Info($"Right-click at {data.pt.X},{data.pt.Y} on \"{ClassNameOf(hit)}\" " +
-                 $"(root \"{ClassNameOf(GetAncestor(hit, GA_ROOT))}\") -> " +
-                 $"{(isDesktop ? "TAKING IT" : "passing through")}.");
-
-        if (!isDesktop)
+        if (!IsEmptyDesktopAt(data.pt))
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
+        _swallowingClick = true;
         DesktopRightClicked?.Invoke(data.pt.X, data.pt.Y);
-
-        // Swallow the click so the shell never shows its own context menu. The matching
-        // WM_RBUTTONUP is harmless on its own, so we let it through.
         return new IntPtr(1);
     }
 
     /// <summary>
-    /// True when the point is over bare desktop. We accept the icon list view because
-    /// that is what covers empty desktop space; clicking an actual icon still lands on
-    /// the same HWND, which is a known limitation tracked for the next iteration.
+    /// True when the point is over bare desktop. The icon list view covers the whole
+    /// desktop, so an actual icon currently counts too - telling them apart needs
+    /// LVM_HITTEST and is tracked as a known gap.
     /// </summary>
     private static bool IsEmptyDesktopAt(POINT pt)
     {
@@ -98,8 +107,7 @@ internal sealed class DesktopRightClickHook : IDisposable
             return false;
         }
 
-        var cls = ClassNameOf(hWnd);
-        if (cls is "SysListView32" or "SHELLDLL_DefView" or "WorkerW" or "Progman")
+        if (ClassNameOf(hWnd) is "SysListView32" or "SHELLDLL_DefView" or "WorkerW" or "Progman")
         {
             return true;
         }
