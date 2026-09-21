@@ -48,11 +48,11 @@ adopting a heavy productivity system. Aesthetic-minded users who theme their des
 
 Ship the smallest thing that proves the core gesture feels good.
 
-- [x] Right-click desktop opens a task box at the cursor
-- [x] Add, edit, check off, delete a task
-- [x] Tasks persist locally between sessions
-- [x] Task box renders on the wallpaper layer (behind windows, visible on desktop)
-- [x] Basic customization: opacity, font size, box position
+- [ ] Right-click desktop opens a task box at the cursor (hook installs, never fires)
+- [ ] Add, edit, check off, delete a task (written, never seen on screen)
+- [ ] Tasks persist locally between sessions (written, never seen on screen)
+- [ ] Task box renders on the wallpaper layer (attaches correctly, paints nothing)
+- [ ] Basic customization: opacity, font size, box position (written, never seen on screen)
 
 ## Later (post-MVP)
 

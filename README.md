@@ -74,13 +74,24 @@ Logs go to `%LOCALAPPDATA%\Wallup\logs\wallup.log`. Tasks and settings live in
 
 ## v0.1 checklist
 
-- [x] Task box renders on the wallpaper layer, behind desktop icons
-- [x] Right-click desktop opens a task box at the cursor
-- [x] Add, edit, check off, delete a task
-- [x] Tasks persist locally between sessions
-- [x] Basic customization: opacity, font size, box position
+Nothing here is finished. The window attaches to the right place in the shell and then
+fails to draw, so no part of the UI has been exercised on screen yet.
+
+- [x] Ambient window parents into the shell, ordered behind the icon view
+- [ ] **Ambient box actually paints** — attaches correctly, renders nothing. Tested both
+      layered and opaque; neither appears. Suspect DWM does not composite arbitrary child
+      HWNDs of Progman on Windows 11
+- [ ] **Right-click gesture fires** — `SetWindowsHookEx` succeeds but the callback is never
+      invoked, and the shell still shows its own context menu
+- [ ] Add, edit, check off, delete a task — written, never exercised on screen
+- [ ] Tasks persist locally between sessions — written, never exercised on screen
+- [ ] Basic customization: opacity, font size, box position — written, never exercised
 - [ ] Survive an Explorer restart without a manual reattach
 - [ ] Multi-monitor placement
+
+> **On `--selftest`:** it reports `OK - behind the desktop icons` while the box is
+> invisible. It inspects window handles and z-order, not pixels. A pass means the attach
+> worked, nothing more. Do not read it as the product working.
 
 ## Known gaps
 
