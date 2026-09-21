@@ -1,8 +1,8 @@
 # Wallup
 
-> Your wallpaper is your to-do list. Right-click, drop a task, get on with your day.
+> Your wallpaper is your to-do list. Click the desktop, drop a task, get on with your day.
 
-Right-click empty desktop, type a task, hit Enter. It drops onto the desktop as a small
+Left-click empty desktop, type a task, hit Enter. It drops onto the desktop as a small
 glass chip you can drag anywhere, tick off, set an alarm on, or delete. See
 [docs/IDEA.md](docs/IDEA.md) for the product thinking.
 
@@ -26,9 +26,9 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | Piece | File | Job |
 | --- | --- | --- |
 | Chip | `Views/ChipWindow.xaml` | One window per task. Drag to move, double-click to edit, tick, alarm, delete. |
-| Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on right-click. Takes one line, then gets out of the way. |
+| Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on a desktop click. Takes one line, then gets out of the way. |
 | Chip host | `Views/ChipHost.cs` | Keeps chip windows in sync with the task list and fires alarms. |
-| Gesture | `Interop/DesktopRightClickHook.cs` | Global `WH_MOUSE_LL` hook. Swallows a desktop right-click. |
+| Gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Swallows a left-click on empty desktop. |
 | Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above Progman: over the wallpaper, under real windows. |
 | Glass | `Interop/Glass.cs` | Windows 11 acrylic via DWM. |
 | Adaptive tone | `Views/AdaptiveGlass.cs` | Samples the wallpaper behind each window and picks dark or light glass. |
@@ -55,15 +55,16 @@ time a chip asks the question it is already on screen and would sample itself.
   layered, and DWM refuses to draw a backdrop behind a layered window. These windows use
   `AllowsTransparency="False"` with a transparent background instead. This is the usual
   reason acrylic silently does nothing.
-- **Swallow both halves of the right-click.** Letting `WM_RBUTTONUP` through hands focus
-  back to the shell, which deactivates the composer the instant it opens; it flashes and
-  vanishes, and the *next* click appears to open it late.
+- **Swallow both halves of the click.** Letting the button-up through hands focus back to
+  the shell, which deactivates the composer the instant it opens; it flashes and vanishes,
+  and the *next* click appears to open it late.
 
-### The right-click conflict
+### The click conflict
 
-Plain right-click on empty desktop opens Wallup and suppresses the Windows context menu.
-**Hold Shift for the normal Windows menu.** A global hook that eats right-clicks with no
-way out is hostile.
+A plain left-click on empty desktop opens Wallup and is swallowed. **Hold Shift to pass
+the click through untouched.** That escape hatch matters: clicking bare desktop is also
+how you deselect icons and start a rubber-band selection, and this hook would otherwise
+eat both. A global hook with no way out is hostile.
 
 ## Running it
 
@@ -87,7 +88,7 @@ Seen working on Windows 11 build 26200, in screenshots:
 
 - [x] Chips render on the desktop with real acrylic, above the wallpaper
 - [x] Glass tone adapts per chip to the wallpaper behind it
-- [x] Right-click empty desktop opens the composer at the cursor, and it stays open
+- [x] Left-click empty desktop opens the composer at the cursor, and it stays open
 - [x] Type + Enter drops a new chip at that exact spot
 - [x] Tasks persist across restarts, including position
 - [x] Checkbox state and strikethrough
@@ -102,13 +103,13 @@ Built but **not yet confirmed by a human**, because they need real hover and dra
 
 ## Known gaps
 
-- Right-clicking a desktop *icon* also opens Wallup. Both hit `SysListView32`; telling them
-  apart needs `LVM_HITTEST`.
+- Clicking a desktop *icon* also opens Wallup. Both hit `SysListView32`; telling them apart
+  needs `LVM_HITTEST`. Until then, Shift+click is the way to select an icon.
+- Left-click is a busy gesture. Deselect and rubber-band selection are unavailable on bare
+  desktop without holding Shift.
 - `Settings.Opacity`, `FontSize` and `ChipWidth` are stored and edited but not yet applied
   to live chips.
 - `HideCompleted` is stored but not yet acted on.
-- A chip picks its glass tone once, when its window is created. Dragging it from a dark
-  patch to a bright one does not re-sample until restart.
 - The sampler assumes the wallpaper is scaled to fill, which is the Windows default. Tile
   and Centre make the mapping approximate.
 - Single monitor. Multi-monitor placement is untested.

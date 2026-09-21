@@ -1,11 +1,11 @@
 # Wallup
 
-> Your wallpaper is your to-do list. Right-click, drop a task, get on with your day.
+> Your wallpaper is your to-do list. Click the desktop, drop a task, get on with your day.
 
 ## The one-liner
 
-Wallup fuses your desktop wallpaper and your to-do list into one surface. Right-click
-anywhere on the wallpaper and a task box appears, native to the desktop, blending into
+Wallup fuses your desktop wallpaper and your to-do list into one surface. Click anywhere
+on the empty desktop and a task box appears, native to the desktop, blending into
 your background. Tasks are interactive, live-editable, and deeply customizable.
 
 ## The problem
@@ -26,13 +26,13 @@ No single tool is wallpaper-native, interactive, AND friendly-to-customize at on
 
 ## The insight
 
-The right-click on the empty desktop is the most natural place to add a task, because
+A click on the empty desktop is the most natural place to add a task, because
 that is where your attention already is when the desktop is showing. Make that gesture the
 whole product, then make the result beautiful and yours.
 
 ## What makes Wallup different
 
-- **Wallpaper-native gesture.** Right-click the desktop itself spawns the task box. No tray
+- **Wallpaper-native gesture.** Clicking the desktop itself spawns the task box. No tray
   menu, no separate app window to hunt for.
 - **Interactive, not regenerated.** Edit, check off, reorder tasks live on the wallpaper
   layer. Nothing regenerates behind the scenes.
@@ -48,7 +48,7 @@ adopting a heavy productivity system. Aesthetic-minded users who theme their des
 
 Ship the smallest thing that proves the core gesture feels good.
 
-- [ ] Right-click desktop opens a task box at the cursor (hook installs, never fires)
+- [x] Left-click desktop opens a task box at the cursor
 - [ ] Add, edit, check off, delete a task (written, never seen on screen)
 - [ ] Tasks persist locally between sessions (written, never seen on screen)
 - [ ] Task box renders on the wallpaper layer (attaches correctly, paints nothing)
@@ -73,8 +73,8 @@ Resolved by the spike — see [SPIKE-WORKERW.md](SPIKE-WORKERW.md) for the evide
   children, so we parent into Progman and insert behind `SHELLDLL_DefView`.
 - ~~**Stack.**~~ C# / .NET 9 / WPF. The whole risk is Win32 interop, and that is where
   C# and the Lively reference implementation pay off.
-- ~~**Right-click conflict.**~~ Replace it, with an escape hatch: plain right-click opens
-  Wallup, Shift+right-click gives the normal Windows menu.
+- ~~**Right-click conflict.**~~ Moot: the gesture is now a plain **left**-click on empty
+  desktop, with Shift+click passing through untouched as the escape hatch.
 
 Still open:
 
@@ -84,7 +84,7 @@ Still open:
   wallpaper" a two-window illusion rather than a literal one — worth checking whether it
   still feels right when dogfooding.
 - **Telling an icon click from an empty-desktop click.** Both land on `SysListView32`, so
-  right-clicking an icon currently opens Wallup too. Needs `LVM_HITTEST`.
+  clicking an icon currently opens Wallup too. Needs `LVM_HITTEST`.
 - **Surviving an Explorer restart.** The attach is lost and needs a manual reattach today.
 
 ## Prior art to study
@@ -92,7 +92,7 @@ Still open:
 Install and use these as a real user before building. The gap that annoys you is the
 product.
 
-- **Themia** - closest to the right-click-desktop flow
+- **Themia** - closest to the click-the-desktop flow
 - **YYNote** - transparent wallpaper-blended to-do widget
 - **TickTick** - interactive desktop task widget with opacity control
 - **Rainmeter** - the customization ceiling, and the friction to avoid
