@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Wallup</AssemblyName>
+    <RootNamespace>Wallup</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SelfContained>false</SelfContained>
+    <!-- WFO0003 asks us to move DPI setup out of the manifest, but that guidance is for
+         WinForms apps. This is a WPF app that happens to borrow the tray icon, and WPF
+         needs PerMonitorV2 declared in the manifest before any window is created. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WinForms is only used for the tray icon, and is fully qualified there. Leaving it
+         in the global usings makes Application and KeyEventArgs ambiguous against WPF. -->
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+
+</Project>
