@@ -38,7 +38,9 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
 
+    internal const uint GW_HWNDLAST = 1;
     internal const uint GW_HWNDNEXT = 2;
+    internal const uint GW_HWNDPREV = 3;
 
     [DllImport("user32.dll")]
     internal static extern IntPtr WindowFromPoint(POINT point);
@@ -59,6 +61,12 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool IsWindowVisible(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    internal static extern int GetSystemMetrics(int nIndex);
+
+    internal const int SM_CXSCREEN = 0;
+    internal const int SM_CYSCREEN = 1;
 
     // ---- The WorkerW summon -----------------------------------------------
 
@@ -101,6 +109,28 @@ internal static class NativeMethods
     internal const int WS_EX_TOOLWINDOW = 0x00000080;
     internal const int WS_EX_NOACTIVATE = 0x08000000;
     internal const int WS_EX_TRANSPARENT = 0x00000020;
+
+    // ---- Foreground and focus ---------------------------------------------
+
+    [DllImport("user32.dll")]
+    internal static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern IntPtr SetFocus(IntPtr hWnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool AttachThreadInput(uint attachTo, uint attachFrom, bool attach);
+
+    [DllImport("kernel32.dll")]
+    internal static extern uint GetCurrentThreadId();
 
     // ---- Low-level mouse hook ---------------------------------------------
 
