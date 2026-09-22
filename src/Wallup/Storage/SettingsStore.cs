@@ -28,8 +28,12 @@ internal sealed class SettingsStore
                 return new AppSettings();
             }
 
+            // An interrupted write leaves a zero-byte file, which is not valid JSON. That
+            // is a fresh start, not an error worth a stack trace on every launch.
             var json = File.ReadAllText(_path);
-            return JsonSerializer.Deserialize<AppSettings>(json, Options) ?? new AppSettings();
+            return string.IsNullOrWhiteSpace(json)
+                ? new AppSettings()
+                : JsonSerializer.Deserialize<AppSettings>(json, Options) ?? new AppSettings();
         }
         catch (Exception ex) when (ex is IOException or JsonException)
         {
@@ -43,7 +47,12 @@ internal sealed class SettingsStore
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-            File.WriteAllText(_path, JsonSerializer.Serialize(settings, Options));
+
+            // Same temp-then-replace dance as the task list: a crash mid-write must not
+            // leave a truncated file behind.
+            var temp = _path + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(settings, Options));
+            File.Move(temp, _path, overwrite: true);
         }
         catch (Exception ex) when (ex is IOException or JsonException)
         {

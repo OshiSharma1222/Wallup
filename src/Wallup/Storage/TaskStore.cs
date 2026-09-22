@@ -37,8 +37,11 @@ internal sealed class TaskStore
                     return [];
                 }
 
+                // An interrupted write leaves a zero-byte file, which is not valid JSON.
                 var json = File.ReadAllText(_path);
-                return JsonSerializer.Deserialize<List<TaskItem>>(json, Options) ?? [];
+                return string.IsNullOrWhiteSpace(json)
+                    ? []
+                    : JsonSerializer.Deserialize<List<TaskItem>>(json, Options) ?? [];
             }
             catch (Exception ex) when (ex is IOException or JsonException)
             {
