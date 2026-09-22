@@ -1,16 +1,20 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using Wallup.Interop;
 
 namespace Wallup.Views;
 
 /// <summary>
-/// The transient box the right-click gesture opens. Takes one line of text and gets out of
-/// the way - it is not where tasks live, it is only where they are born.
+/// The transient box the desktop click opens. Takes one line of text and gets out of the
+/// way - it is not where tasks live, it is only where they are born.
 /// </summary>
 internal partial class ComposerWindow : Window
 {
+    /// <summary>Room for the cast shadow, matching the root margin in the XAML.</summary>
+    private const double Halo = 14;
+
     /// <summary>
     /// Deactivation right after opening is not the user dismissing us. The shell often
     /// takes focus back once during the show, and hiding on that makes the window flash
@@ -36,26 +40,38 @@ internal partial class ComposerWindow : Window
     internal void ShowAt(int screenX, int screenY)
     {
         Input.Clear();
-        Show();
+
+        // Build the window before showing it, so it has a DPI to convert with and can be
+        // put in the right place on its first frame instead of jumping there afterwards.
+        new WindowInteropHelper(this).EnsureHandle();
 
         var scale = VisualTreeHelper.GetDpi(this);
-        var left = screenX / scale.DpiScaleX;
-        var top = screenY / scale.DpiScaleY;
+        MoveTo(screenX / scale.DpiScaleX - Halo, screenY / scale.DpiScaleY - Halo);
 
-        // Keep the whole box on screen when the click lands near an edge.
-        var bounds = SystemParameters.WorkArea;
-        Left = Math.Clamp(left, bounds.Left, Math.Max(bounds.Left, bounds.Right - Width));
-        Top = Math.Clamp(top, bounds.Top, Math.Max(bounds.Top, bounds.Bottom - ActualHeight));
+        Show();
+
+        // SizeToContent has measured by now, so the bottom edge can be checked properly.
+        MoveTo(Left, Top);
 
         _shownAt = DateTime.Now;
 
-        // OnSourceInitialized ran before this move, so it sampled the wallpaper under the
-        // window's default spot. Now that it is where the click was, ask again.
+        // The handle existed before the move, so the first sample read the wallpaper under
+        // the old spot. Now that it is where the click was, ask again.
         AdaptiveGlass.Apply(this);
 
-        Activate();
+        ForegroundWindow.Take(this);
         Input.Focus();
         Keyboard.Focus(Input);
+    }
+
+    /// <summary>Places the window, keeping the whole box on screen near an edge.</summary>
+    private void MoveTo(double left, double top)
+    {
+        var bounds = SystemParameters.WorkArea;
+        var height = ActualHeight > 0 ? ActualHeight : 110;
+
+        Left = Math.Clamp(left, bounds.Left, Math.Max(bounds.Left, bounds.Right - Width));
+        Top = Math.Clamp(top, bounds.Top, Math.Max(bounds.Top, bounds.Bottom - height));
     }
 
     protected override void OnDeactivated(EventArgs e)
@@ -69,7 +85,7 @@ internal partial class ComposerWindow : Window
             {
                 if (IsVisible)
                 {
-                    Activate();
+                    ForegroundWindow.Take(this);
                     Keyboard.Focus(Input);
                 }
             });
@@ -87,7 +103,9 @@ internal partial class ComposerWindow : Window
                 var text = Input.Text.Trim();
                 if (text.Length > 0)
                 {
-                    Committed?.Invoke(text, new Point(Left, Top));
+                    // The task lands where the glass was, not where the window was: the
+                    // halo around it is empty space.
+                    Committed?.Invoke(text, new Point(Left + Halo, Top + Halo));
                 }
 
                 Input.Clear();
