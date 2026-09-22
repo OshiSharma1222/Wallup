@@ -18,12 +18,18 @@ internal static class AdaptiveGlass
     private const string LightPalette = "Views/GlassLight.xaml";
 
     /// <summary>
-    /// Applies the palette and the DWM backdrop for wherever the window currently sits.
-    /// Safe to call again after the window moves; it swaps the palette rather than
-    /// stacking a second one. Call it once the window has a handle AND its final position,
-    /// because sampling before the move reads the wallpaper under the old spot.
+    /// Applies the palette for wherever the window currently sits. Safe to call again
+    /// after the window moves; it swaps the palette rather than stacking a second one.
+    /// Call it once the window has a handle AND its final position, because sampling
+    /// before the move reads the wallpaper under the old spot.
     /// </summary>
-    internal static bool Apply(Window window, bool smallCorners = false)
+    /// <param name="window">The window to tone.</param>
+    /// <param name="acrylic">
+    /// Also ask DWM for a blurred backdrop. Only for windows that float over other apps,
+    /// where the wallpaper is not what is behind them; glass on the desktop layer refracts
+    /// the wallpaper itself instead. See <see cref="GlassCapsule"/>.
+    /// </param>
+    internal static bool Apply(Window window, bool acrylic = false)
     {
         var light = IsOverLightWallpaper(window);
         var wanted = light ? LightPalette : DarkPalette;
@@ -31,21 +37,24 @@ internal static class AdaptiveGlass
         var merged = window.Resources.MergedDictionaries;
         var current = merged.FirstOrDefault(d => d.Source is not null && IsPalette(d.Source));
 
-        if (current?.Source is not null && current.Source.OriginalString == wanted)
+        if (current?.Source is null || current.Source.OriginalString != wanted)
         {
-            return light; // already wearing the right one
+            if (current is not null)
+            {
+                merged.Remove(current);
+            }
+
+            // Window-level resources win over the app-level ones for DynamicResource
+            // lookups, so this repaints everything inside without touching any other
+            // window.
+            merged.Add(new ResourceDictionary { Source = new Uri(wanted, UriKind.Relative) });
         }
 
-        if (current is not null)
+        if (acrylic)
         {
-            merged.Remove(current);
+            Glass.Apply(window, light: light);
         }
 
-        // Window-level resources win over the app-level ones for DynamicResource lookups,
-        // so this repaints everything inside without touching any other window.
-        merged.Add(new ResourceDictionary { Source = new Uri(wanted, UriKind.Relative) });
-
-        Glass.Apply(window, smallCorners, light);
         return light;
     }
 
@@ -62,20 +71,18 @@ internal static class AdaptiveGlass
             var scaleX = transform?.M11 ?? 1.0;
             var scaleY = transform?.M22 ?? 1.0;
 
-            // The sampler works in physical pixels; WPF's Left/Top are device-independent.
-            var x = (int)(window.Left * scaleX);
-            var y = (int)(window.Top * scaleY);
-            var width = (int)(Math.Max(window.Width, 1) * scaleX);
-            var height = (int)(Math.Max(window.ActualHeight, 40) * scaleY);
+            // The wallpaper is measured in physical pixels; WPF's Left/Top are not.
+            var patch = new Rect(
+                window.Left * scaleX,
+                window.Top * scaleY,
+                Math.Max(window.Width, 1) * scaleX,
+                Math.Max(window.ActualHeight, 40) * scaleY);
 
-            var screenWidth = (int)(SystemParameters.PrimaryScreenWidth * scaleX);
-            var screenHeight = (int)(SystemParameters.PrimaryScreenHeight * scaleY);
+            var luminance = Wallpaper.LuminanceAt(patch);
+            var light = luminance > Wallpaper.LightThreshold;
 
-            var luminance = WallpaperSampler.LuminanceAt(x, y, width, height, screenWidth, screenHeight);
-            var light = luminance > WallpaperSampler.LightThreshold;
-
-            Log.Info($"Glass for \"{window.Title}\" at {x},{y}: wallpaper luminance " +
-                     $"{luminance:F3} -> {(light ? "light" : "dark")}.");
+            Log.Info($"Glass for \"{window.Title}\" at {patch.X:F0},{patch.Y:F0}: wallpaper " +
+                     $"luminance {luminance:F3} -> {(light ? "light" : "dark")}.");
 
             return light;
         }

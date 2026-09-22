@@ -14,6 +14,13 @@ namespace Wallup.Views;
 /// </summary>
 internal partial class ChipWindow : Window
 {
+    /// <summary>
+    /// Transparent room around the capsule for its cast shadow, matching the root margin
+    /// in the XAML. A task's saved position is the corner of the glass you can see, not of
+    /// the window, so it survives a change to this number.
+    /// </summary>
+    private const double Halo = 14;
+
     private readonly TaskItem _task;
 
     internal ChipWindow(TaskItem task)
@@ -22,8 +29,8 @@ internal partial class ChipWindow : Window
         DataContext = task;
         InitializeComponent();
 
-        Left = task.X;
-        Top = task.Y;
+        Left = task.X - Halo;
+        Top = task.Y - Halo;
 
         MouseEnter += (_, _) => FadeActions(1);
         MouseLeave += (_, _) => FadeActions(0);
@@ -40,7 +47,7 @@ internal partial class ChipWindow : Window
         base.OnSourceInitialized(e);
 
         DesktopWindow.Pin(this);
-        AdaptiveGlass.Apply(this, smallCorners: true);
+        AdaptiveGlass.Apply(this);
     }
 
     private void FadeActions(double to) =>
@@ -59,12 +66,12 @@ internal partial class ChipWindow : Window
 
         DragMove();
 
-        _task.X = Left;
-        _task.Y = Top;
+        _task.X = Left + Halo;
+        _task.Y = Top + Halo;
 
         // Dropped somewhere new, so the wallpaper underneath may have flipped from dark
-        // to light or back.
-        AdaptiveGlass.Apply(this, smallCorners: true);
+        // to light or back. The glass itself follows the move on its own.
+        AdaptiveGlass.Apply(this);
 
         Changed?.Invoke();
     }

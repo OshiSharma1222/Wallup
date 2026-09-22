@@ -4,36 +4,52 @@
     <!-- Dark vibrancy, for glass sitting on a dark wallpaper. Smoked rather than black, so
          the wallpaper still reads through it, with a bright rim to catch the edge. -->
 
-    <SolidColorBrush x:Key="Ink" Color="#F7FFFFFF" />
-    <SolidColorBrush x:Key="InkMuted" Color="#8FFFFFFF" />
-    <SolidColorBrush x:Key="InkFaint" Color="#59FFFFFF" />
-    <SolidColorBrush x:Key="Accent" Color="#FF0A84FF" />
-    <SolidColorBrush x:Key="Hairline" Color="#24FFFFFF" />
-    <SolidColorBrush x:Key="CheckRim" Color="#7AFFFFFF" />
-    <SolidColorBrush x:Key="CheckFill" Color="#1AFFFFFF" />
-    <SolidColorBrush x:Key="Hover" Color="#24FFFFFF" />
-    <SolidColorBrush x:Key="PopupBack" Color="#F2181C22" />
+    <SolidColorBrush x:Key="Ink" Color="#FAFFFFFF" />
+    <SolidColorBrush x:Key="InkMuted" Color="#A6FFFFFF" />
+    <SolidColorBrush x:Key="InkFaint" Color="#66FFFFFF" />
+    <SolidColorBrush x:Key="Accent" Color="#FF3B9DFF" />
+    <SolidColorBrush x:Key="Hairline" Color="#2EFFFFFF" />
+    <SolidColorBrush x:Key="CheckRim" Color="#8CFFFFFF" />
+    <SolidColorBrush x:Key="CheckFill" Color="#26FFFFFF" />
+    <SolidColorBrush x:Key="Hover" Color="#2EFFFFFF" />
+    <SolidColorBrush x:Key="PopupBack" Color="#F7181C22" />
     <SolidColorBrush x:Key="FieldBack" Color="#1FFFFFFF" />
 
-    <LinearGradientBrush x:Key="Rim" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#75FFFFFF" Offset="0" />
-        <GradientStop Color="#2EFFFFFF" Offset="0.45" />
-        <GradientStop Color="#1FFFFFFF" Offset="1" />
+    <!-- Pale ink on clear glass needs dark behind the letters. -->
+    <DropShadowEffect x:Key="InkShadow" Color="#000000" ShadowDepth="0"
+                      BlurRadius="7" Opacity="0.85" />
+
+    <!-- The lit edge. Brightest along the top, where a real pill catches the light. -->
+    <LinearGradientBrush x:Key="Rim" StartPoint="0.2,0" EndPoint="0.8,1">
+        <GradientStop Color="#C7FFFFFF" Offset="0" />
+        <GradientStop Color="#4DFFFFFF" Offset="0.35" />
+        <GradientStop Color="#26FFFFFF" Offset="0.62" />
+        <GradientStop Color="#73FFFFFF" Offset="1" />
     </LinearGradientBrush>
 
-    <!-- The smoke. Light enough to keep text crisp, sheer enough that the wallpaper
-         still shows through the blur. -->
+    <!-- Light splitting at the rim. Alpha stays in the teens: any stronger and it stops
+         reading as glass and starts reading as a broken gradient. -->
+    <LinearGradientBrush x:Key="Fringe" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#3D6FE4FF" Offset="0" />
+        <GradientStop Color="#00FFFFFF" Offset="0.3" />
+        <GradientStop Color="#00FFFFFF" Offset="0.62" />
+        <GradientStop Color="#3DFF8FE0" Offset="0.82" />
+        <GradientStop Color="#33FFCE85" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- The smoke. Sheer, because the refracted wallpaper underneath is doing the work;
+         it is here only so text has something to sit on. -->
     <LinearGradientBrush x:Key="Sheen" StartPoint="0.05,0" EndPoint="0.8,1">
-        <GradientStop Color="#8C1A1F26" Offset="0" />
-        <GradientStop Color="#A6141820" Offset="0.35" />
-        <GradientStop Color="#B00F131A" Offset="0.72" />
-        <GradientStop Color="#A6141820" Offset="1" />
+        <GradientStop Color="#4D1A1F26" Offset="0" />
+        <GradientStop Color="#5E10141A" Offset="0.45" />
+        <GradientStop Color="#52141820" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="TopLight" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#4DFFFFFF" Offset="0" />
-        <GradientStop Color="#14FFFFFF" Offset="0.5" />
-        <GradientStop Color="#00FFFFFF" Offset="1" />
+        <GradientStop Color="#59FFFFFF" Offset="0" />
+        <GradientStop Color="#0DFFFFFF" Offset="0.4" />
+        <GradientStop Color="#00FFFFFF" Offset="0.75" />
+        <GradientStop Color="#0DFFFFFF" Offset="1" />
     </LinearGradientBrush>
 
 </ResourceDictionary>

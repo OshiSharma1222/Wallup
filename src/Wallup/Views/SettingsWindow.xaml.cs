@@ -19,7 +19,9 @@ internal partial class SettingsWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        AdaptiveGlass.Apply(this);
+        // The only window that floats over other apps, so the only one that wants the
+        // system's blur rather than a refracted wallpaper.
+        AdaptiveGlass.Apply(this, acrylic: true);
     }
 
     private void OnDrag(object sender, MouseButtonEventArgs e)
