@@ -28,10 +28,17 @@ internal sealed class TaskItem : INotifyPropertyChanged
         get => _isDone;
         set
         {
-            if (Set(ref _isDone, value))
+            if (_isDone == value)
             {
-                CompletedAt = value ? DateTimeOffset.Now : null;
+                return;
             }
+
+            // Stamp the time *before* announcing the change. Saving is driven by
+            // PropertyChanged, so setting it afterwards wrote a finished task with no
+            // finish time and only corrected itself on the next save.
+            _isDone = value;
+            CompletedAt = value ? DateTimeOffset.Now : null;
+            Raise(nameof(IsDone));
         }
     }
 

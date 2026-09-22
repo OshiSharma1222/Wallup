@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using Wallup.Interop;
@@ -101,17 +102,43 @@ internal partial class ChipWindow : Window
 
     private void OnEditorKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key is not (Key.Enter or Key.Escape))
+        // Do not lean on focus to finish the edit. Window.Focus() does not take keyboard
+        // focus off a child that already has it, so LostFocus never fired: the editor
+        // stayed open and the typing was never written back to the task.
+        switch (e.Key)
+        {
+            case Key.Enter:
+                Commit();
+                EndEdit();
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                // Escape means "forget it", so put the stored text back in the box.
+                Binding?.UpdateTarget();
+                EndEdit();
+                e.Handled = true;
+                break;
+        }
+    }
+
+    /// <summary>Clicking away is the third way out of an edit, and it keeps the typing.</summary>
+    private void OnEndEdit(object sender, RoutedEventArgs e)
+    {
+        if (Editor.Visibility != Visibility.Visible)
         {
             return;
         }
 
-        // Pushing focus to the window commits the binding and ends the edit.
-        Focus();
-        e.Handled = true;
+        Commit();
+        EndEdit();
     }
 
-    private void OnEndEdit(object sender, RoutedEventArgs e)
+    private BindingExpression? Binding => Editor.GetBindingExpression(TextBox.TextProperty);
+
+    private void Commit() => Binding?.UpdateSource();
+
+    private void EndEdit()
     {
         Editor.Visibility = Visibility.Collapsed;
         Label.Visibility = Visibility.Visible;

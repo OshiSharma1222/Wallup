@@ -23,6 +23,10 @@
          Everything that would spill past the pill lives inside PART_Clip. -->
     <Style TargetType="{x:Type views:GlassCapsule}">
         <Setter Property="SnapsToDevicePixels" Value="True" />
+        <!-- A sheet of glass is not a focus stop. Without this, closing the inline editor
+             hands focus up to the capsule and WPF draws a dashed rectangle on it. -->
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type views:GlassCapsule}">
