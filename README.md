@@ -111,30 +111,29 @@ was accepted. Tasks and settings live in `%APPDATA%\Wallup\`.
 
 ## What is verified
 
-Measured on Windows 11 build 26200 at 150% scale, by reading the live window z-order and
-capturing each chip's own pixels with `PrintWindow`:
+Driven end to end on Windows 11 build 26200 at 150% scale, with synthetic input on a real
+desktop, reading the live window z-order and `tasks.json` after each step:
 
+- [x] Left-click bare desktop opens the composer at the cursor, and it takes the keyboard
+- [x] Type + Enter drops a chip whose glass lands exactly on the click point
 - [x] A chip sits directly above Progman and below every ordinary app window
-- [x] Raising a chip - what a click does - leaves it on the desktop layer instead of
-      burying it behind the wallpaper. This is the v0.2 bug, gone.
+- [x] Clicking a chip leaves it on the desktop layer instead of burying it behind the
+      wallpaper. This is the v0.2 bug, gone.
 - [x] Chips render as glass capsules that refract the wallpaper behind them
-- [x] Glass tone adapts per chip to the wallpaper behind it
-- [x] Tasks load from disk on start, at their saved positions
-- [x] `AttachThreadInput` is what makes the composer take the keyboard: without it the
-      window opens but the foreground never moves and typed text lands elsewhere; with it
-      both succeed. Tested side by side.
+- [x] Dragging a chip moves it, and the refraction and the tone follow it - dragged from
+      black artwork onto a bright face, the same chip went from smoked to frosted
+- [x] Tick, strikethrough, and the completion time, saved
+- [x] Double-click to edit in place, Enter to keep it, saved
+- [x] Clock button, alarm popup, and the alarm time, saved
+- [x] Delete button removes the chip and the task
+- [x] Tasks reload at their saved positions across restarts
 
-Built but **not yet confirmed by a human**, because they need real hover, drag and a
-visible desktop:
+Not yet exercised:
 
-- [ ] Left-click empty desktop opens the composer and it keeps focus (the mechanism above
-      is verified in isolation; the gesture end to end is not)
-- [ ] Type + Enter drops a new chip at that exact spot
-- [ ] Dragging a chip, and the refraction following the drag
-- [ ] Double-click to edit a chip in place
-- [ ] Clock button, setting an alarm, the chip pulsing when it comes due
-- [ ] Delete button, checkbox and strikethrough
+- [ ] The alarm actually firing, and the chip pulsing when it does
 - [ ] Settings panel sliders
+- [ ] Shift+click passing a desktop click through
+- [ ] Two chips overlapping each other
 
 ## Known gaps
 

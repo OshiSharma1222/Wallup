@@ -51,7 +51,7 @@ Ship the smallest thing that proves the core gesture feels good.
 - [x] Left-click desktop opens a task box at the cursor
 - [x] Task box renders on the desktop layer, above the wallpaper and under real windows
 - [x] Tasks persist locally between sessions, at their saved positions
-- [ ] Add, edit, check off, delete a task (built; needs a human on a visible desktop)
+- [x] Add, edit, check off, delete a task
 - [ ] Basic customization: opacity, font size, box position (stored and edited, not yet
       applied to live chips)
 
