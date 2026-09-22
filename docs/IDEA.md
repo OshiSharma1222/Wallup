@@ -49,16 +49,19 @@ adopting a heavy productivity system. Aesthetic-minded users who theme their des
 Ship the smallest thing that proves the core gesture feels good.
 
 - [x] Left-click desktop opens a task box at the cursor
-- [ ] Add, edit, check off, delete a task (written, never seen on screen)
-- [ ] Tasks persist locally between sessions (written, never seen on screen)
-- [ ] Task box renders on the wallpaper layer (attaches correctly, paints nothing)
-- [ ] Basic customization: opacity, font size, box position (written, never seen on screen)
+- [x] Task box renders on the desktop layer, above the wallpaper and under real windows
+- [x] Tasks persist locally between sessions, at their saved positions
+- [ ] Add, edit, check off, delete a task (built; needs a human on a visible desktop)
+- [ ] Basic customization: opacity, font size, box position (stored and edited, not yet
+      applied to live chips)
 
 ## Later (post-MVP)
 
-- Per-wallpaper themes (task style follows the current wallpaper)
+- ~~Blur / glassmorphism styling.~~ Done, and it became the look: each chip is a glass
+  capsule that refracts the patch of wallpaper it covers. See the README.
+- ~~Per-wallpaper themes.~~ Partly done: tone follows the wallpaper brightness behind each
+  chip. A full per-wallpaper theme is still open.
 - Multiple boxes / task groups pinned to different desktop spots
-- Blur / glassmorphism styling
 - Due dates, priorities, recurring tasks
 - Sync across devices
 - Multi-monitor support
@@ -83,6 +86,10 @@ Still open:
   happens in a separate window above the icons. This makes "edit tasks live on the
   wallpaper" a two-window illusion rather than a literal one — worth checking whether it
   still feels right when dogfooding.
+- **The glass fakes the transparency it needs.** A capsule shape forces a per-pixel-alpha
+  window, which DWM will not put a backdrop behind, so a chip paints the wallpaper patch
+  it is covering instead. That is exact while a chip sits on bare desktop, which is where
+  chips live - but it means a chip over another chip shows wallpaper, not the chip.
 - **Telling an icon click from an empty-desktop click.** Both land on `SysListView32`, so
   clicking an icon currently opens Wallup too. Needs `LVM_HITTEST`.
 - **Surviving an Explorer restart.** The attach is lost and needs a manual reattach today.

@@ -6,8 +6,9 @@ Left-click empty desktop, type a task, hit Enter. It drops onto the desktop as a
 glass chip you can drag anywhere, tick off, set an alarm on, or delete. See
 [docs/IDEA.md](docs/IDEA.md) for the product thinking.
 
-**Status: v0.2.** The core loop works end to end. See *What is verified* below for exactly
-what has been seen working and what has not.
+**Status: v0.3.** See *What is verified* below for exactly what has been seen working and
+what has not. v0.2 claimed a working loop it did not have: chips were being pinned
+*underneath* the desktop, so a task vanished the moment anything touched its z-order.
 
 ## Stack
 
@@ -29,12 +30,33 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on a desktop click. Takes one line, then gets out of the way. |
 | Chip host | `Views/ChipHost.cs` | Keeps chip windows in sync with the task list and fires alarms. |
 | Gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Swallows a left-click on empty desktop. |
-| Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above Progman: over the wallpaper, under real windows. |
-| Glass | `Interop/Glass.cs` | Windows 11 acrylic via DWM. |
+| Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above the desktop: over the wallpaper, under real windows. |
+| Focus | `Interop/ForegroundWindow.cs` | Hands the composer the keyboard, which a background process may not normally take. |
+| Glass | `Views/GlassCapsule.cs` | The pill. Refracts the wallpaper it is covering. |
 | Adaptive tone | `Views/AdaptiveGlass.cs` | Samples the wallpaper behind each window and picks dark or light glass. |
-| Sampler | `Interop/WallpaperSampler.cs` | Mean Rec. 709 luma of the wallpaper under a screen rectangle. |
+| Wallpaper | `Interop/Wallpaper.cs` | The wallpaper as a picture: the patch behind a screen rectangle, and how bright it is. |
+| Acrylic | `Interop/Glass.cs` | DWM backdrop, for the settings panel only. |
 
-### Adaptive glass
+### The glass
+
+A chip is a capsule of clear glass lying on the wallpaper. It is not the system's acrylic:
+DWM can only frost a rectangle, in the system's own tint, and it refuses outright to draw
+behind the per-pixel-alpha window a capsule shape requires.
+
+So `GlassCapsule` paints the wallpaper itself. It works out which patch of the picture it
+is covering and draws that patch back, gently magnified and softened, with a much harder
+magnification in a band around the rim - which is what a real lens does to whatever lies
+behind its thick edge, and the single cue that makes a flat shape read as glass. On top go
+a sheer wash so text stays readable, a top sheen, a faint colour fringe, and a lit outline.
+
+Because a chip sits directly on the desktop, the patch it paints is exactly the patch it
+hides, so the glass is genuinely see-through even though the window is opaque. Moving a
+chip only moves two brush viewboxes, so the refraction follows a drag for free.
+
+The settings panel is the exception: it floats over other apps, where the wallpaper is
+*not* what is behind it, so it keeps the DWM backdrop in `Interop/Glass.cs`.
+
+### Adaptive tone
 
 Each window samples the wallpaper behind its own rectangle and merges either
 `Views/GlassDark.xaml` or `Views/GlassLight.xaml` into its resources, so a chip on a dark
@@ -42,19 +64,24 @@ patch is smoked with white text while one on a bright patch is frosted with dark
 Every colour in `Theme.xaml` is a `DynamicResource` for exactly this reason - a
 `StaticResource` would bake in whichever palette happened to load first.
 
-The sampler reads the wallpaper bitmap rather than grabbing the screen, because by the
-time a chip asks the question it is already on screen and would sample itself.
+`Wallpaper` reads the wallpaper file rather than grabbing the screen, because by the time a
+chip asks what is behind it, it is already on screen and a grab would capture the chip.
 
-### Three traps worth knowing
+### Four traps worth knowing
 
-- **Never pin to `HWND_BOTTOM`.** The bottom of the z-order is *below* Progman, which puts
-  the window under the desktop and makes it invisible. Insert directly above Progman
-  instead, and re-assert it on `WM_WINDOWPOSCHANGING`, because clicking a window normally
-  raises it.
+- **`SetWindowPos` names the window that goes *above* yours.** Passing Progman therefore
+  files the window *under* the desktop, where it is invisible - and re-asserting that on
+  `WM_WINDOWPOSCHANGING` made a chip disappear the moment it was clicked. `HWND_BOTTOM`
+  lands in the same place for the same reason. Walk the z-order to find the lowest window
+  that is *not* the desktop and insert after that one instead.
+- **A background process cannot take the keyboard.** The gesture swallows its own click,
+  so Windows sees no input for us and `SetForegroundWindow` quietly does nothing: the
+  composer appears, the caret blinks elsewhere, and everything typed goes to the app
+  behind. Joining the foreground thread's input queue with `AttachThreadInput` for the
+  length of the call is what makes it work - measured, not guessed.
 - **Acrylic needs a non-layered window.** `AllowsTransparency="True"` makes a WPF window
-  layered, and DWM refuses to draw a backdrop behind a layered window. These windows use
-  `AllowsTransparency="False"` with a transparent background instead. This is the usual
-  reason acrylic silently does nothing.
+  layered, and DWM refuses to draw a backdrop behind one. That trade is why chips refract
+  the wallpaper themselves and only the settings panel uses acrylic.
 - **Swallow both halves of the click.** Letting the button-up through hands focus back to
   the shell, which deactivates the composer the instant it opens; it flashes and vanishes,
   and the *next* click appears to open it late.
@@ -84,21 +111,29 @@ was accepted. Tasks and settings live in `%APPDATA%\Wallup\`.
 
 ## What is verified
 
-Seen working on Windows 11 build 26200, in screenshots:
+Measured on Windows 11 build 26200 at 150% scale, by reading the live window z-order and
+capturing each chip's own pixels with `PrintWindow`:
 
-- [x] Chips render on the desktop with real acrylic, above the wallpaper
+- [x] A chip sits directly above Progman and below every ordinary app window
+- [x] Raising a chip - what a click does - leaves it on the desktop layer instead of
+      burying it behind the wallpaper. This is the v0.2 bug, gone.
+- [x] Chips render as glass capsules that refract the wallpaper behind them
 - [x] Glass tone adapts per chip to the wallpaper behind it
-- [x] Left-click empty desktop opens the composer at the cursor, and it stays open
-- [x] Type + Enter drops a new chip at that exact spot
-- [x] Tasks persist across restarts, including position
-- [x] Checkbox state and strikethrough
+- [x] Tasks load from disk on start, at their saved positions
+- [x] `AttachThreadInput` is what makes the composer take the keyboard: without it the
+      window opens but the foreground never moves and typed text lands elsewhere; with it
+      both succeed. Tested side by side.
 
-Built but **not yet confirmed by a human**, because they need real hover and drag:
+Built but **not yet confirmed by a human**, because they need real hover, drag and a
+visible desktop:
 
-- [ ] Dragging a chip to reposition it
+- [ ] Left-click empty desktop opens the composer and it keeps focus (the mechanism above
+      is verified in isolation; the gesture end to end is not)
+- [ ] Type + Enter drops a new chip at that exact spot
+- [ ] Dragging a chip, and the refraction following the drag
 - [ ] Double-click to edit a chip in place
 - [ ] Clock button, setting an alarm, the chip pulsing when it comes due
-- [ ] Delete button
+- [ ] Delete button, checkbox and strikethrough
 - [ ] Settings panel sliders
 
 ## Known gaps
@@ -114,3 +149,5 @@ Built but **not yet confirmed by a human**, because they need real hover and dra
   and Centre make the mapping approximate.
 - Single monitor. Multi-monitor placement is untested.
 - An Explorer restart may strip the z-order pinning; there is no watcher for it yet.
+- The glass refracts the *wallpaper*, so a chip overlapping another chip shows the
+  wallpaper rather than the chip underneath.
