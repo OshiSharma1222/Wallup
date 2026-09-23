@@ -17,6 +17,14 @@ namespace Wallup.Interop;
 ///
 /// What we want is the slot directly *above* the desktop stack, so we find the window
 /// sitting on top of it and insert after that one instead.
+///
+/// Holding that slot on our own is not enough, because the desktop moves. Show Desktop
+/// (Win+D, or the corner of the taskbar) minimises the apps and raises Progman to the top
+/// of the normal band, and nothing tells us - our window never moved, so it gets no
+/// WM_WINDOWPOSCHANGING. Every chip was left underneath the wallpaper at exactly the
+/// moment the user went to look at them. So each chip is also *owned* by Progman: the
+/// window manager keeps an owned window above its owner, and carries it along whenever
+/// the owner is raised.
 /// </summary>
 internal static class DesktopWindow
 {
@@ -52,6 +60,13 @@ internal static class DesktopWindow
         var exStyle = GetWindowLong(handle, GWL_EXSTYLE);
         SetWindowLong(handle, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
 
+        // Ride along with the desktop when Show Desktop raises it.
+        var progman = FindWindow("Progman", null);
+        if (progman != IntPtr.Zero)
+        {
+            new WindowInteropHelper(window).Owner = progman;
+        }
+
         Sink(handle);
         HwndSource.FromHwnd(handle)?.AddHook(KeepOnDesktop);
     }
@@ -79,33 +94,49 @@ internal static class DesktopWindow
     }
 
     /// <summary>
-    /// The window to insert after so we end up directly on top of the desktop: whatever is
-    /// currently the lowest window that is not part of the desktop itself.
+    /// The window to insert after so we end up directly on top of the desktop: whatever
+    /// sits immediately above the highest desktop window.
     ///
     /// Walking the z-order beats naming Progman outright, because the wallpaper can be
     /// painted by a WorkerW sitting above it - slideshows and Explorer restarts both do
-    /// that, and anchoring to Progman alone would leave us underneath.
+    /// that, and anchoring to Progman alone would leave us underneath. The walk starts at
+    /// the desktop rather than the bottom of the stack: while Show Desktop has it raised,
+    /// the minimised apps sit *below* it, and filing in after one of those would bury us.
     /// </summary>
     private static IntPtr JustAboveTheDesktop(IntPtr self)
     {
         // GW_HWNDLAST from any top-level window is the bottom of the z-order; from there
         // GW_HWNDPREV climbs back up towards the foreground.
-        var bottom = GetWindow(self, GW_HWNDLAST);
-        var candidate = HwndTop;
+        var desktop = IntPtr.Zero;
+        for (var h = GetWindow(self, GW_HWNDLAST); h != IntPtr.Zero; h = GetWindow(h, GW_HWNDPREV))
+        {
+            if (IsWindowVisible(h) && IsDesktop(h))
+            {
+                desktop = h;
+            }
+        }
 
-        for (var h = bottom; h != IntPtr.Zero; h = GetWindow(h, GW_HWNDPREV))
+        if (desktop == IntPtr.Zero)
+        {
+            return HwndTop;
+        }
+
+        for (var h = GetWindow(desktop, GW_HWNDPREV); h != IntPtr.Zero; h = GetWindow(h, GW_HWNDPREV))
         {
             if (h == self || !IsWindowVisible(h) || IsDesktop(h))
             {
                 continue;
             }
 
-            candidate = h;
-            break;
+            // Inserting after a topmost window would make us topmost too. Reaching one
+            // means the desktop is the top of the normal band, and so should we be.
+            return IsTopmost(h) ? HwndTop : h;
         }
 
-        return candidate;
+        return HwndTop;
     }
+
+    private static bool IsTopmost(IntPtr hWnd) => (GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
 
     private static bool IsDesktop(IntPtr hWnd) => DesktopClasses.Contains(ClassNameOf(hWnd));
 }
