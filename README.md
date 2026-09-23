@@ -67,13 +67,18 @@ Every colour in `Theme.xaml` is a `DynamicResource` for exactly this reason - a
 `Wallpaper` reads the wallpaper file rather than grabbing the screen, because by the time a
 chip asks what is behind it, it is already on screen and a grab would capture the chip.
 
-### Four traps worth knowing
+### Five traps worth knowing
 
 - **`SetWindowPos` names the window that goes *above* yours.** Passing Progman therefore
   files the window *under* the desktop, where it is invisible - and re-asserting that on
   `WM_WINDOWPOSCHANGING` made a chip disappear the moment it was clicked. `HWND_BOTTOM`
   lands in the same place for the same reason. Walk the z-order to find the lowest window
   that is *not* the desktop and insert after that one instead.
+- **The desktop moves, and does not tell you.** Show Desktop (Win+D) can raise Progman
+  to the top of the normal band. A chip that only guards its own z-order never hears
+  about it and ends up under the wallpaper exactly when the user looks for it. Chips are
+  therefore *owned* by Progman: the window manager keeps an owned window above its
+  owner and carries it along when the owner is raised.
 - **A background process cannot take the keyboard.** The gesture swallows its own click,
   so Windows sees no input for us and `SetForegroundWindow` quietly does nothing: the
   composer appears, the caret blinks elsewhere, and everything typed goes to the app
@@ -119,6 +124,8 @@ desktop, reading the live window z-order and `tasks.json` after each step:
 - [x] A chip sits directly above Progman and below every ordinary app window
 - [x] Clicking a chip leaves it on the desktop layer instead of burying it behind the
       wallpaper. This is the v0.2 bug, gone.
+- [x] Show Desktop (Win+D) leaves the chips on the wallpaper, clickable, and they drop
+      back under the apps when those are restored
 - [x] Chips render as glass capsules that refract the wallpaper behind them
 - [x] Dragging a chip moves it, and the refraction and the tone follow it - dragged from
       black artwork onto a bright face, the same chip went from smoked to frosted
