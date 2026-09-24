@@ -58,6 +58,23 @@ internal partial class ChipWindow : Window
         Created.BeginAnimation(OpacityProperty, new DoubleAnimation(1 - to, duration));
     }
 
+    /// <summary>
+    /// Fades the chip out, then runs <paramref name="then"/>. Gives a ticked task a beat
+    /// on screen so the tick is seen before the chip drops away.
+    /// </summary>
+    internal void FadeOut(Action then)
+    {
+        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(350))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(450),
+        };
+        fade.Completed += (_, _) => then();
+        BeginAnimation(OpacityProperty, fade);
+    }
+
+    /// <summary>Puts the chip back to full strength, for a tick taken back mid-fade.</summary>
+    internal void CancelFade() => BeginAnimation(OpacityProperty, null);
+
     // ---- Dragging ---------------------------------------------------------
 
     private void OnDragStart(object sender, MouseButtonEventArgs e)

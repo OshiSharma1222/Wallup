@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Threading;
 using Wallup.Models;
@@ -20,6 +21,9 @@ internal sealed class ChipHost : IDisposable
     {
         _viewModel = viewModel;
         _viewModel.Tasks.CollectionChanged += OnTasksChanged;
+
+        // Ticked tasks now leave the desktop; any finished before that rule go too.
+        _viewModel.ClearCompleted();
 
         foreach (var task in _viewModel.Tasks)
         {
@@ -57,13 +61,41 @@ internal sealed class ChipHost : IDisposable
         var chip = new ChipWindow(task);
         chip.Deleted += t => _viewModel.Delete(t);
         chip.Changed += _viewModel.Persist;
+        task.PropertyChanged += OnTaskChanged;
 
         _chips[task.Id] = chip;
         chip.Show();
     }
 
+    /// <summary>A ticked task has done its job, so its chip drops off the desktop.</summary>
+    private void OnTaskChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TaskItem.IsDone) || sender is not TaskItem task
+            || !_chips.TryGetValue(task.Id, out var chip))
+        {
+            return;
+        }
+
+        if (!task.IsDone)
+        {
+            chip.CancelFade();
+            return;
+        }
+
+        // Checked again here because unticking during the fade takes the task back.
+        chip.FadeOut(() =>
+        {
+            if (task.IsDone)
+            {
+                _viewModel.Delete(task);
+            }
+        });
+    }
+
     private void Remove(TaskItem task)
     {
+        task.PropertyChanged -= OnTaskChanged;
+
         if (!_chips.Remove(task.Id, out var chip))
         {
             return;
