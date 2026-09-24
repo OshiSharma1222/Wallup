@@ -100,23 +100,43 @@ internal partial class ComposerWindow : Window
         switch (e.Key)
         {
             case Key.Enter:
-                var text = Input.Text.Trim();
-                if (text.Length > 0)
-                {
-                    // The task lands where the glass was, not where the window was: the
-                    // halo around it is empty space.
-                    Committed?.Invoke(text, new Point(Left + Halo, Top + Halo));
-                }
-
-                Input.Clear();
-                Hide();
+                DropTask();
                 e.Handled = true;
                 break;
 
             case Key.Escape:
-                Hide();
+                Cancel();
                 e.Handled = true;
                 break;
         }
+    }
+
+    /// <summary>A double right-click anywhere on the box cancels it, like Escape.</summary>
+    private void OnRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount >= 2)
+        {
+            Cancel();
+        }
+
+        e.Handled = true;
+    }
+
+    /// <summary>Closes the box without making a task.</summary>
+    internal void Cancel() => Hide();
+
+    /// <summary>Hands the typed task over to become a chip, and closes the box.</summary>
+    private void DropTask()
+    {
+        var text = Input.Text.Trim();
+        if (text.Length > 0)
+        {
+            // The task lands where the glass was, not where the window was: the halo
+            // around it is empty space.
+            Committed?.Invoke(text, new Point(Left + Halo, Top + Halo));
+        }
+
+        Input.Clear();
+        Hide();
     }
 }

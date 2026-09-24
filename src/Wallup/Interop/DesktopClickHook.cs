@@ -12,6 +12,8 @@ namespace Wallup.Interop;
 /// hands focus straight back to the shell, which deactivates the composer the instant it
 /// opens - it flashes and vanishes, and the next click appears to open it late.
 ///
+/// A double right-click on empty desktop opens the composer too; see OnRightButtonDown.
+///
 /// Holding Shift passes the click through untouched. That matters more for left-click
 /// than it did for right: clicking bare desktop is also how you deselect icons and start
 /// a rubber-band selection, and this hook would otherwise eat both.
@@ -26,12 +28,43 @@ internal sealed class DesktopClickHook : IDisposable
     /// <summary>True once we have swallowed a down and still owe its matching up.</summary>
     private bool _swallowingClick;
 
+    /// <summary>The same debt for the right button.</summary>
+    private bool _swallowingRightClick;
+
+    /// <summary>
+    /// A single right-click held back in case a second one makes it a double. If none
+    /// comes in time, <see cref="_replay"/> gives it back to the desktop.
+    /// </summary>
+    private bool _rightPending;
+    private uint _lastRightTime;
+    private POINT _lastRightPoint;
+    private readonly System.Windows.Threading.DispatcherTimer _replay;
+
+    /// <summary>Tags the right-click we replay, so the hook lets its own echo through.</summary>
+    private static readonly IntPtr ReplayMarker = new(0x57A11);
+
     /// <summary>Raised with the screen-space click point, in physical pixels.</summary>
     internal event Action<int, int>? DesktopClicked;
+
+    /// <summary>Raised on a double right-click on empty desktop, in physical pixels.</summary>
+    internal event Action<int, int>? DesktopRightDoubleClicked;
+
+    /// <summary>
+    /// Whether the composer is open. A held-back right-click is then simply dropped rather
+    /// than replayed: handing it to the desktop would take focus away and close the box,
+    /// text and all, under the desktop menu. The hook runs on the UI thread, so reading
+    /// window state here is safe.
+    /// </summary>
+    internal Func<bool>? IsComposing { get; set; }
 
     internal DesktopClickHook()
     {
         _proc = OnMouseEvent;
+        _replay = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(GetDoubleClickTime()),
+        };
+        _replay.Tick += (_, _) => ReplayRightClick();
     }
 
     internal bool IsInstalled => _hook != IntPtr.Zero;
@@ -74,6 +107,18 @@ internal sealed class DesktopClickHook : IDisposable
             return new IntPtr(1);
         }
 
+        if (message == WM_RBUTTONUP && _swallowingRightClick
+            && Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam).dwExtraInfo != ReplayMarker)
+        {
+            _swallowingRightClick = false;
+            return new IntPtr(1);
+        }
+
+        if (message == WM_RBUTTONDOWN)
+        {
+            return OnRightButtonDown(nCode, wParam, lParam);
+        }
+
         if (message != WM_LBUTTONDOWN)
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
@@ -105,6 +150,69 @@ internal sealed class DesktopClickHook : IDisposable
     }
 
     /// <summary>
+    /// A double right-click on empty desktop opens the composer there. Telling a double
+    /// from a single means holding the first click back for the double-click time; a
+    /// single is then replayed, so the desktop menu still appears, just a beat later.
+    /// </summary>
+    private IntPtr OnRightButtonDown(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+
+        if (data.dwExtraInfo == ReplayMarker || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0
+            || !IsEmptyDesktopAt(data.pt))
+        {
+            return CallNextHookEx(_hook, nCode, wParam, lParam);
+        }
+
+        var isDouble = _rightPending
+            && data.time - _lastRightTime <= GetDoubleClickTime()
+            && Math.Abs(data.pt.X - _lastRightPoint.X) <= GetSystemMetrics(SM_CXDOUBLECLK) / 2
+            && Math.Abs(data.pt.Y - _lastRightPoint.Y) <= GetSystemMetrics(SM_CYDOUBLECLK) / 2;
+
+        _swallowingRightClick = true;
+        _replay.Stop();
+
+        if (isDouble)
+        {
+            _rightPending = false;
+            Log.Info($"Double right-click at {data.pt.X},{data.pt.Y} -> " +
+                     $"{(IsComposing?.Invoke() == true ? "cancelling composer" : "opening composer")}.");
+            DesktopRightDoubleClicked?.Invoke(data.pt.X, data.pt.Y);
+            return new IntPtr(1);
+        }
+
+        _rightPending = true;
+        _lastRightTime = data.time;
+        _lastRightPoint = data.pt;
+        _replay.Start();
+        return new IntPtr(1);
+    }
+
+    /// <summary>No second click came, so the held-back one was a plain right-click.</summary>
+    private void ReplayRightClick()
+    {
+        _replay.Stop();
+        if (!_rightPending)
+        {
+            return;
+        }
+
+        _rightPending = false;
+
+        if (IsComposing?.Invoke() == true)
+        {
+            return;
+        }
+
+        var size = Marshal.SizeOf<INPUT>();
+        SendInput(2,
+        [
+            new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_RIGHTDOWN, dwExtraInfo = ReplayMarker } },
+            new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_RIGHTUP, dwExtraInfo = ReplayMarker } },
+        ], size);
+    }
+
+    /// <summary>
     /// True when the point is over bare desktop. The icon list view covers the whole
     /// desktop, so an actual icon currently counts too - telling them apart needs
     /// LVM_HITTEST and is tracked as a known gap.
@@ -128,6 +236,8 @@ internal sealed class DesktopClickHook : IDisposable
 
     public void Dispose()
     {
+        _replay.Stop();
+
         if (_hook == IntPtr.Zero)
         {
             return;

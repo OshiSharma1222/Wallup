@@ -13,7 +13,8 @@
         Width="338"
         Topmost="True"
         WindowStartupLocation="Manual"
-        PreviewKeyDown="OnInputKeyDown">
+        PreviewKeyDown="OnInputKeyDown"
+        PreviewMouseRightButtonDown="OnRightButtonDown">
 
     <!-- Same glass as a chip, because this is what the chip is about to become. The margin
          is room for the cast shadow; see ChipWindow. -->
@@ -26,7 +27,10 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
+                <!-- No context menu: its first right-click would swallow the double
+                     right-click that cancels the box. Keyboard shortcuts still work. -->
                 <TextBox Grid.Row="0" x:Name="Input"
+                         ContextMenuService.IsEnabled="False"
                          Style="{DynamicResource GlassText}"
                          FontSize="16" />
 
@@ -34,7 +38,7 @@
                            Fill="{DynamicResource Hairline}" />
 
                 <TextBlock Grid.Row="2" Style="{DynamicResource Caption}" Margin="0,8,0,0"
-                           Text="enter to drop it on the desktop  ·  esc to cancel" />
+                           Text="enter to drop it  ·  esc or double right-click to cancel" />
             </Grid>
         </views:GlassCapsule>
     </Grid>

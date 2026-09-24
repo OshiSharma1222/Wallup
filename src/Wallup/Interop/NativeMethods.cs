@@ -67,6 +67,11 @@ internal static class NativeMethods
 
     internal const int SM_CXSCREEN = 0;
     internal const int SM_CYSCREEN = 1;
+    internal const int SM_CXDOUBLECLK = 36;
+    internal const int SM_CYDOUBLECLK = 37;
+
+    [DllImport("user32.dll")]
+    internal static extern uint GetDoubleClickTime();
 
     // ---- The WorkerW summon -----------------------------------------------
 
@@ -188,6 +193,31 @@ internal static class NativeMethods
         public IntPtr dwExtraInfo;
     }
 
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    internal const uint INPUT_MOUSE = 0;
+    internal const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+    internal const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+
+    /// <summary>Mouse-only INPUT. Sequential layout pads <c>mi</c> to the union's offset.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct INPUT
+    {
+        public uint type;
+        public MOUSEINPUT mi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

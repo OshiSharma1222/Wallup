@@ -73,6 +73,18 @@ public partial class App : Application
             // dispatcher rather than opening a window inline.
             Dispatcher.BeginInvoke(() => _composer?.ShowAt(x, y));
         };
+        _hook.IsComposing = () => _composer?.IsVisible == true;
+        _hook.DesktopRightDoubleClicked += (x, y) => Dispatcher.BeginInvoke(() =>
+        {
+            // A toggle: the first opens the box, the next cancels it, exactly like Escape.
+            if (_composer?.IsVisible == true)
+            {
+                _composer.Cancel();
+                return;
+            }
+
+            _composer?.ShowAt(x, y);
+        });
 
         if (!_hook.Install())
         {
