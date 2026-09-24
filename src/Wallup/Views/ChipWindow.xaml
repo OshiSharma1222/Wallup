@@ -46,6 +46,13 @@
                              KeyDown="OnEditorKeyDown" LostFocus="OnEndEdit" />
                 </Grid>
 
+                <!-- The day the task was made sits in the corner at rest; hovering swaps
+                     it for the controls, which share the same spot. -->
+                <TextBlock Grid.Column="2" x:Name="Created" Style="{DynamicResource Caption}"
+                           Text="{Binding CreatedAt, StringFormat='d MMM'}"
+                           HorizontalAlignment="Right" VerticalAlignment="Top"
+                           Margin="8,2,0,0" IsHitTestVisible="False" />
+
                 <!-- Controls stay out of the way until the chip is hovered. -->
                 <StackPanel Grid.Column="2" x:Name="Actions" Orientation="Horizontal"
                             VerticalAlignment="Top" Margin="8,0,0,0" Opacity="0">

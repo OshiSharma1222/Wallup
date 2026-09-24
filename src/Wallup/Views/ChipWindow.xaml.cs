@@ -51,9 +51,12 @@ internal partial class ChipWindow : Window
         AdaptiveGlass.Apply(this);
     }
 
-    private void FadeActions(double to) =>
-        Actions.BeginAnimation(OpacityProperty,
-            new DoubleAnimation(to, TimeSpan.FromMilliseconds(120)));
+    private void FadeActions(double to)
+    {
+        var duration = TimeSpan.FromMilliseconds(120);
+        Actions.BeginAnimation(OpacityProperty, new DoubleAnimation(to, duration));
+        Created.BeginAnimation(OpacityProperty, new DoubleAnimation(1 - to, duration));
+    }
 
     // ---- Dragging ---------------------------------------------------------
 
