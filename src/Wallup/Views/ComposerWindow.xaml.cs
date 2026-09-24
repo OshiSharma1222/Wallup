@@ -125,6 +125,22 @@ internal partial class ComposerWindow : Window
     /// <summary>Closes the box without making a task.</summary>
     internal void Cancel() => Hide();
 
+    /// <summary>
+    /// A desktop click while the box is open. It closes the box, keeping anything typed
+    /// as a task, the way clicking away from a chip edit keeps the typing. The second
+    /// click of a double-click lands here too, so one that follows the opening click too
+    /// closely is ignored rather than closing the box it just opened.
+    /// </summary>
+    internal void ClickedAway()
+    {
+        if (DateTime.Now - _shownAt < TimeSpan.FromMilliseconds(NativeMethods.GetDoubleClickTime()))
+        {
+            return;
+        }
+
+        DropTask();
+    }
+
     /// <summary>Hands the typed task over to become a chip, and closes the box.</summary>
     private void DropTask()
     {

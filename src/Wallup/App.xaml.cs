@@ -71,7 +71,18 @@ public partial class App : Application
         {
             // The hook callback must return immediately, so hand the UI work to the
             // dispatcher rather than opening a window inline.
-            Dispatcher.BeginInvoke(() => _composer?.ShowAt(x, y));
+            Dispatcher.BeginInvoke(() =>
+            {
+                // Clicking the desktop again is how you put the box away. Re-opening it
+                // there instead made an empty box follow every click and never leave.
+                if (_composer?.IsVisible == true)
+                {
+                    _composer.ClickedAway();
+                    return;
+                }
+
+                _composer?.ShowAt(x, y);
+            });
         };
         _hook.IsComposing = () => _composer?.IsVisible == true;
         _hook.DesktopRightDoubleClicked += (x, y) => Dispatcher.BeginInvoke(() =>
