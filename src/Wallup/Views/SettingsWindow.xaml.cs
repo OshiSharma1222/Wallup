@@ -24,6 +24,16 @@ internal partial class SettingsWindow : Window
         AdaptiveGlass.Apply(this, acrylic: true);
     }
 
+    /// <summary>Opens the window on an up-to-date today, in case midnight has passed.</summary>
+    internal void ShowToday()
+    {
+        _viewModel.RefreshDay();
+        TodayLabel.Text = DateTime.Now.ToString("dddd d MMMM");
+
+        Show();
+        Activate();
+    }
+
     private void OnDrag(object sender, MouseButtonEventArgs e)
     {
         if (e.ButtonState == MouseButtonState.Pressed)

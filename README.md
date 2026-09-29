@@ -28,6 +28,7 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | --- | --- | --- |
 | Chip | `Views/ChipWindow.xaml` | One window per task. Drag to move, double-click to edit, tick, alarm, delete. |
 | Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on either gesture. Takes one line, then gets out of the way. |
+| Today and settings | `Views/SettingsWindow.xaml` | Today's to-do and done lists, the choice of gesture, and the appearance sliders. |
 | Chip host | `Views/ChipHost.cs` | Keeps chip windows in sync with the task list and fires alarms. |
 | Mouse gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Catches a double right-click on empty desktop. |
 | Key gesture | `Interop/CtrlAltHook.cs` | Global `WH_KEYBOARD_LL` hook. Catches Ctrl+Alt pressed on their own. |
@@ -94,7 +95,7 @@ chip asks what is behind it, it is already on screen and a grab would capture th
 
 ### The gestures
 
-Two ways open the task box, and the `OpenWith` setting keeps either or both:
+Two ways open the task box, and the window lets you keep either or both:
 
 - **Double right-click** on empty desktop opens it where you clicked. A single right-click
   is held back for the double-click time, then handed to the desktop, so its menu still
@@ -158,7 +159,8 @@ desktop, reading the live window z-order and `tasks.json` after each step:
 Not yet exercised:
 
 - [ ] The alarm actually firing, and the chip pulsing when it does
-- [ ] Settings panel sliders
+- [ ] The today and settings window: both lists, ticking from it, the gesture switch and
+      the sliders
 - [ ] Double right-click opening the composer, and a single one still reaching the desktop
 - [ ] Shift+click passing a desktop click through
 - [ ] Two chips overlapping each other

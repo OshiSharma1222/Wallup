@@ -144,7 +144,7 @@ public partial class App : Application
     {
         var menu = new System.Windows.Forms.ContextMenuStrip();
         menu.Items.Add("Add task", null, (_, _) => ShowComposerAtCursor());
-        menu.Items.Add("Settings", null, (_, _) => ShowSettings());
+        menu.Items.Add("Today and settings", null, (_, _) => ShowSettings());
         menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
         menu.Items.Add("Clear finished", null, (_, _) => _viewModel?.ClearCompleted());
         menu.Items.Add("Bring tasks on screen", null, (_, _) => _chips?.ReflowOntoScreen());
@@ -172,8 +172,7 @@ public partial class App : Application
     private void ShowSettings()
     {
         _settings ??= new SettingsWindow(_viewModel!);
-        _settings.Show();
-        _settings.Activate();
+        _settings.ShowToday();
     }
 
     private static void OpenLog() =>
