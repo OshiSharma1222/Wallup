@@ -23,12 +23,9 @@ internal sealed class ChipHost : IDisposable
         _viewModel.Tasks.CollectionChanged += OnTasksChanged;
         _viewModel.Settings.PropertyChanged += OnSettingsChanged;
 
-        // Ticked tasks now leave the desktop; any finished before that rule go too.
-        _viewModel.ClearCompleted();
-
         foreach (var task in _viewModel.Tasks)
         {
-            Add(task);
+            Watch(task);
         }
 
         _alarmTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
@@ -43,16 +40,36 @@ internal sealed class ChipHost : IDisposable
     {
         foreach (var task in e.NewItems?.OfType<TaskItem>() ?? [])
         {
-            Add(task);
+            Watch(task);
         }
 
         foreach (var task in e.OldItems?.OfType<TaskItem>() ?? [])
         {
-            Remove(task);
+            Unwatch(task);
         }
     }
 
-    private void Add(TaskItem task)
+    /// <summary>
+    /// Every task is watched, finished ones too: unticking one in the window is what
+    /// brings its chip back. Only unfinished tasks have a chip.
+    /// </summary>
+    private void Watch(TaskItem task)
+    {
+        task.PropertyChanged += OnTaskChanged;
+
+        if (!task.IsDone)
+        {
+            ShowChip(task);
+        }
+    }
+
+    private void Unwatch(TaskItem task)
+    {
+        task.PropertyChanged -= OnTaskChanged;
+        HideChip(task);
+    }
+
+    private void ShowChip(TaskItem task)
     {
         if (_chips.ContainsKey(task.Id))
         {
@@ -62,33 +79,53 @@ internal sealed class ChipHost : IDisposable
         var chip = new ChipWindow(task, _viewModel.Settings);
         chip.Deleted += t => _viewModel.Delete(t);
         chip.Changed += _viewModel.Persist;
-        task.PropertyChanged += OnTaskChanged;
 
         _chips[task.Id] = chip;
         chip.Show();
     }
 
-    /// <summary>A ticked task has done its job, so its chip drops off the desktop.</summary>
+    private void HideChip(TaskItem task)
+    {
+        if (_chips.Remove(task.Id, out var chip))
+        {
+            chip.Close();
+        }
+    }
+
+    /// <summary>
+    /// A ticked task has done its job, so its chip drops off the desktop. The task itself
+    /// stays in the list for the rest of the day, under done in the window.
+    /// </summary>
     private void OnTaskChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(TaskItem.IsDone) || sender is not TaskItem task
-            || !_chips.TryGetValue(task.Id, out var chip))
+        if (e.PropertyName != nameof(TaskItem.IsDone) || sender is not TaskItem task)
         {
             return;
         }
 
+        _chips.TryGetValue(task.Id, out var chip);
+
         if (!task.IsDone)
         {
-            chip.CancelFade();
+            // Unticked mid-fade keeps the chip; unticked from the window brings it back.
+            if (chip is not null)
+            {
+                chip.CancelFade();
+            }
+            else
+            {
+                ShowChip(task);
+            }
+
             return;
         }
 
         // Checked again here because unticking during the fade takes the task back.
-        chip.FadeOut(() =>
+        chip?.FadeOut(() =>
         {
             if (task.IsDone)
             {
-                _viewModel.Delete(task);
+                HideChip(task);
             }
         });
     }
@@ -100,18 +137,6 @@ internal sealed class ChipHost : IDisposable
         {
             chip.ApplySettings(_viewModel.Settings);
         }
-    }
-
-    private void Remove(TaskItem task)
-    {
-        task.PropertyChanged -= OnTaskChanged;
-
-        if (!_chips.Remove(task.Id, out var chip))
-        {
-            return;
-        }
-
-        chip.Close();
     }
 
     private void CheckAlarms(object? sender, EventArgs e)

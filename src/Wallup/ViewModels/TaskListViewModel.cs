@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Windows.Data;
 using Wallup.Models;
 using Wallup.Storage;
 
@@ -21,18 +22,31 @@ internal sealed class TaskListViewModel
         _settingsStore = settingsStore;
         Settings = settings;
 
-        Tasks = new ObservableCollection<TaskItem>(_store.Load());
+        // A finished task is kept for the rest of its day, so the window can show what got
+        // done today. After that it has served its purpose and goes.
+        var today = DateTimeOffset.Now.Date;
+        Tasks = new ObservableCollection<TaskItem>(
+            _store.Load().Where(t => !t.IsDone || t.CompletedAt?.Date >= today));
         Tasks.CollectionChanged += OnCollectionChanged;
 
         foreach (var task in Tasks)
         {
             task.PropertyChanged += OnTaskChanged;
         }
+
+        ToDo = LiveView(t => !t.IsDone);
+        DoneToday = LiveView(t => t.IsDone && t.CompletedAt?.Date == DateTimeOffset.Now.Date);
     }
 
     public ObservableCollection<TaskItem> Tasks { get; }
 
     public AppSettings Settings { get; }
+
+    /// <summary>Everything not yet ticked, whichever day it was made.</summary>
+    public ListCollectionView ToDo { get; }
+
+    /// <summary>What was ticked today. It left the desktop, but it still counts.</summary>
+    public ListCollectionView DoneToday { get; }
 
     /// <summary>Creates a task at a point on the desktop, in device-independent pixels.</summary>
     public TaskItem? Add(string text, double x, double y)
@@ -68,10 +82,29 @@ internal sealed class TaskListViewModel
         }
     }
 
+    /// <summary>
+    /// Brings both lists up to date with the clock. Ticking a task moves it across on its
+    /// own; this is for midnight, when yesterday's finished tasks stop being today's.
+    /// </summary>
+    public void RefreshDay() => DoneToday.Refresh();
+
     /// <summary>Writes the list out. Chips call this after a drag or an edit.</summary>
     public void Persist() => _store.Save(Tasks);
 
     public void SaveSettings() => _settingsStore.Save(Settings);
+
+    /// <summary>A filtered view that moves a task across the moment it is ticked or unticked.</summary>
+    private ListCollectionView LiveView(Predicate<TaskItem> keep)
+    {
+        var view = new ListCollectionView(Tasks)
+        {
+            Filter = o => keep((TaskItem)o),
+            IsLiveFiltering = true,
+        };
+        view.LiveFilteringProperties.Add(nameof(TaskItem.IsDone));
+        view.SortDescriptions.Add(new SortDescription(nameof(TaskItem.CreatedAt), ListSortDirection.Ascending));
+        return view;
+    }
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => Persist();
 

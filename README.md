@@ -98,6 +98,12 @@ the click through untouched.** That escape hatch matters: clicking bare desktop 
 how you deselect icons and start a rubber-band selection, and this hook would otherwise
 eat both. A global hook with no way out is hostile.
 
+### Finished tasks
+
+Ticking a task takes its chip off the desktop, but the task is kept until the end of the
+day so the window can list it under *Done*. Unticking it there puts the chip back.
+Finished tasks from earlier days are dropped at the next start.
+
 ## Running it
 
 ```

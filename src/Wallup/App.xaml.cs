@@ -53,7 +53,7 @@ public partial class App : Application
         InstallHook();
         InstallTray();
 
-        Log.Info($"Ready. {_viewModel.Tasks.Count} task(s) on the desktop.");
+        Log.Info($"Ready. {_viewModel.ToDo.Count} task(s) on the desktop.");
     }
 
     /// <summary>Drops the new task where the composer was standing.</summary>
