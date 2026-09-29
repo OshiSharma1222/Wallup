@@ -52,8 +52,8 @@ Ship the smallest thing that proves the core gesture feels good.
 - [x] Task box renders on the desktop layer, above the wallpaper and under real windows
 - [x] Tasks persist locally between sessions, at their saved positions
 - [x] Add, edit, check off, delete a task
-- [ ] Basic customization: opacity, font size, box position (stored and edited, not yet
-      applied to live chips)
+- [x] Basic customization: opacity, font size and chip width from sliders, applied to the
+      chips live; position by dragging
 
 ## Later (post-MVP)
 

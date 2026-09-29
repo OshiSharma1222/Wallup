@@ -21,6 +21,7 @@ internal sealed class ChipHost : IDisposable
     {
         _viewModel = viewModel;
         _viewModel.Tasks.CollectionChanged += OnTasksChanged;
+        _viewModel.Settings.PropertyChanged += OnSettingsChanged;
 
         // Ticked tasks now leave the desktop; any finished before that rule go too.
         _viewModel.ClearCompleted();
@@ -58,7 +59,7 @@ internal sealed class ChipHost : IDisposable
             return;
         }
 
-        var chip = new ChipWindow(task);
+        var chip = new ChipWindow(task, _viewModel.Settings);
         chip.Deleted += t => _viewModel.Delete(t);
         chip.Changed += _viewModel.Persist;
         task.PropertyChanged += OnTaskChanged;
@@ -90,6 +91,15 @@ internal sealed class ChipHost : IDisposable
                 _viewModel.Delete(task);
             }
         });
+    }
+
+    /// <summary>A slider moved in the settings panel, so every chip follows it live.</summary>
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        foreach (var (_, chip) in _chips)
+        {
+            chip.ApplySettings(_viewModel.Settings);
+        }
     }
 
     private void Remove(TaskItem task)
@@ -142,6 +152,7 @@ internal sealed class ChipHost : IDisposable
     {
         _alarmTimer.Stop();
         _viewModel.Tasks.CollectionChanged -= OnTasksChanged;
+        _viewModel.Settings.PropertyChanged -= OnSettingsChanged;
 
         foreach (var (_, chip) in _chips)
         {

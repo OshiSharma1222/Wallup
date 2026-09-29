@@ -148,8 +148,6 @@ Not yet exercised:
   needs `LVM_HITTEST`. Until then, Shift+click is the way to select an icon.
 - Left-click is a busy gesture. Deselect and rubber-band selection are unavailable on bare
   desktop without holding Shift.
-- `Settings.Opacity`, `FontSize` and `ChipWidth` are stored and edited but not yet applied
-  to live chips.
 - The sampler assumes the wallpaper is scaled to fill, which is the Windows default. Tile
   and Centre make the mapping approximate.
 - Single monitor. Multi-monitor placement is untested.

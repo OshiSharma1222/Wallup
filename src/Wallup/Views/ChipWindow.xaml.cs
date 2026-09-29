@@ -24,7 +24,7 @@ internal partial class ChipWindow : Window
 
     private readonly TaskItem _task;
 
-    internal ChipWindow(TaskItem task)
+    internal ChipWindow(TaskItem task, AppSettings settings)
     {
         _task = task;
         DataContext = task;
@@ -32,6 +32,7 @@ internal partial class ChipWindow : Window
 
         Left = task.X - Halo;
         Top = task.Y - Halo;
+        ApplySettings(settings);
 
         MouseEnter += (_, _) => FadeActions(1);
         MouseLeave += (_, _) => FadeActions(0);
@@ -49,6 +50,32 @@ internal partial class ChipWindow : Window
 
         DesktopWindow.Pin(this);
         AdaptiveGlass.Apply(this);
+    }
+
+    /// <summary>
+    /// Takes on the appearance settings. Called again whenever a slider moves, so the chips
+    /// on the desktop change while the settings panel is still open.
+    /// </summary>
+    internal void ApplySettings(AppSettings settings)
+    {
+        // The window's own opacity is safe here, unlike on anything inside the glass: a
+        // layered window fades as a whole, with no separate layer for the glass to show.
+        Opacity = settings.Opacity;
+
+        Label.FontSize = settings.FontSize;
+        Editor.FontSize = settings.FontSize;
+
+        var width = settings.ChipWidth + 2 * Halo;
+        if (width != Width)
+        {
+            Width = width;
+
+            // A wider chip covers more wallpaper, which may tip it from dark to light.
+            if (IsLoaded)
+            {
+                AdaptiveGlass.Apply(this);
+            }
+        }
     }
 
     private void FadeActions(double to)
@@ -72,7 +99,7 @@ internal partial class ChipWindow : Window
         BeginAnimation(OpacityProperty, fade);
     }
 
-    /// <summary>Puts the chip back to full strength, for a tick taken back mid-fade.</summary>
+    /// <summary>Puts the chip back to its set opacity, for a tick taken back mid-fade.</summary>
     internal void CancelFade() => BeginAnimation(OpacityProperty, null);
 
     // ---- Dragging ---------------------------------------------------------

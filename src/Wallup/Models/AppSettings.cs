@@ -12,7 +12,7 @@ internal sealed class AppSettings : INotifyPropertyChanged
 {
     private double _opacity = 1.0;
     private double _fontSize = 14;
-    private double _chipWidth = 240;
+    private double _chipWidth = 300;
 
     /// <summary>Opacity of each chip on the desktop.</summary>
     public double Opacity
@@ -28,6 +28,7 @@ internal sealed class AppSettings : INotifyPropertyChanged
         set => Set(ref _fontSize, Math.Clamp(value, 9, 32));
     }
 
+    /// <summary>Width of the glass you can see, not counting the room for its shadow.</summary>
     public double ChipWidth
     {
         get => _chipWidth;
