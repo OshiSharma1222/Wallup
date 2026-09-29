@@ -64,6 +64,9 @@ public partial class App : Application
         InstallTray();
 
         Log.Info($"Ready. {_viewModel.ToDo.Count} task(s) on the desktop.");
+
+        // Starting the app by hand should show something, not just a tray icon.
+        ShowSettings();
     }
 
     /// <summary>Drops the new task where the composer was standing.</summary>
@@ -160,7 +163,15 @@ public partial class App : Application
             ContextMenuStrip = menu,
         };
 
-        _tray.DoubleClick += (_, _) => ShowComposerAtCursor();
+        // One click on the icon is the obvious way into the app, so it opens the window.
+        // The box for a new task is still in the menu, and on its own gestures.
+        _tray.MouseClick += (_, args) =>
+        {
+            if (args.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                ShowSettings();
+            }
+        };
     }
 
     private void ShowComposerAtCursor()
