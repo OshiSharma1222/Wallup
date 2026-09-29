@@ -13,7 +13,6 @@ internal sealed class AppSettings : INotifyPropertyChanged
     private double _opacity = 1.0;
     private double _fontSize = 14;
     private double _chipWidth = 240;
-    private bool _hideCompleted;
 
     /// <summary>Opacity of each chip on the desktop.</summary>
     public double Opacity
@@ -33,13 +32,6 @@ internal sealed class AppSettings : INotifyPropertyChanged
     {
         get => _chipWidth;
         set => Set(ref _chipWidth, Math.Clamp(value, 140, 520));
-    }
-
-    /// <summary>Take finished tasks off the desktop instead of striking them through.</summary>
-    public bool HideCompleted
-    {
-        get => _hideCompleted;
-        set => Set(ref _hideCompleted, value);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

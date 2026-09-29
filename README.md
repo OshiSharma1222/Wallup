@@ -150,7 +150,6 @@ Not yet exercised:
   desktop without holding Shift.
 - `Settings.Opacity`, `FontSize` and `ChipWidth` are stored and edited but not yet applied
   to live chips.
-- `HideCompleted` is stored but not yet acted on.
 - The sampler assumes the wallpaper is scaled to fill, which is the Windows default. Tile
   and Centre make the mapping approximate.
 - Single monitor. Multi-monitor placement is untested.

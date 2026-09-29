@@ -34,11 +34,7 @@
 
             <TextBlock Style="{DynamicResource Caption}" Text="Chip width" />
             <Slider Minimum="140" Maximum="520" TickFrequency="10" IsSnapToTickEnabled="True"
-                    Value="{Binding Settings.ChipWidth}" Margin="0,5,0,15" />
-
-            <CheckBox Content="Take finished tasks off the desktop"
-                      Foreground="{DynamicResource InkMuted}" FontSize="12"
-                      IsChecked="{Binding Settings.HideCompleted}" />
+                    Value="{Binding Settings.ChipWidth}" Margin="0,5,0,0" />
 
         </StackPanel>
     </Border>
