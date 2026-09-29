@@ -106,23 +106,21 @@
                         Foreground="{DynamicResource Accent}" />
             </Grid>
 
-            <ScrollViewer MaxHeight="340" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <TextBlock Style="{DynamicResource Caption}" Text="To do" />
-                    <ItemsControl x:Name="ToDoList" ItemsSource="{Binding ToDo}"
-                                  ItemTemplate="{StaticResource ToDoRow}" />
-                    <TextBlock Style="{StaticResource EmptyNote}" Text="Nothing left to do."
-                               Visibility="{Binding HasItems, ElementName=ToDoList,
-                                            Converter={StaticResource EmptyToVisible}}" />
+            <!-- No ScrollViewer: its clipping draws a visible frame on the acrylic, the
+                 same way Opacity does on the chips. The window grows with the list. -->
+            <TextBlock Style="{DynamicResource Caption}" Text="To do" />
+            <ItemsControl x:Name="ToDoList" ItemsSource="{Binding ToDo}"
+                          ItemTemplate="{StaticResource ToDoRow}" />
+            <TextBlock Style="{StaticResource EmptyNote}" Text="Nothing left to do."
+                       Visibility="{Binding HasItems, ElementName=ToDoList,
+                                    Converter={StaticResource EmptyToVisible}}" />
 
-                    <TextBlock Style="{DynamicResource Caption}" Text="Done" Margin="0,12,0,0" />
-                    <ItemsControl x:Name="DoneList" ItemsSource="{Binding DoneToday}"
-                                  ItemTemplate="{StaticResource DoneRow}" />
-                    <TextBlock Style="{StaticResource EmptyNote}" Text="Nothing ticked off yet."
-                               Visibility="{Binding HasItems, ElementName=DoneList,
-                                            Converter={StaticResource EmptyToVisible}}" />
-                </StackPanel>
-            </ScrollViewer>
+            <TextBlock Style="{DynamicResource Caption}" Text="Done" Margin="0,12,0,0" />
+            <ItemsControl x:Name="DoneList" ItemsSource="{Binding DoneToday}"
+                          ItemTemplate="{StaticResource DoneRow}" />
+            <TextBlock Style="{StaticResource EmptyNote}" Text="Nothing ticked off yet."
+                       Visibility="{Binding HasItems, ElementName=DoneList,
+                                    Converter={StaticResource EmptyToVisible}}" />
 
             <Rectangle Style="{StaticResource Rule}" />
 
