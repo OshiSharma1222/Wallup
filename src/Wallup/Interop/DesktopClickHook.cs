@@ -5,18 +5,19 @@ using static Wallup.Interop.NativeMethods;
 namespace Wallup.Interop;
 
 /// <summary>
-/// The gesture. A global low-level mouse hook watches for a left-click on empty desktop,
-/// swallows it, and raises <see cref="DesktopClicked"/> instead.
+/// The mouse gesture. A global low-level mouse hook watches for a double right-click on
+/// empty desktop, which opens the composer; see OnRightButtonDown. The other gesture,
+/// Ctrl+Alt, lives in <see cref="CtrlAltHook"/>.
+///
+/// A plain left-click no longer opens anything. It took over every click on the desktop,
+/// deselecting icons and rubber-band selection included. It is only watched while the
+/// composer is open, when clicking the desktop is how you put the box away.
 ///
 /// Both the button-down AND the button-up have to be swallowed. Letting the up through
 /// hands focus straight back to the shell, which deactivates the composer the instant it
 /// opens - it flashes and vanishes, and the next click appears to open it late.
 ///
-/// A double right-click on empty desktop opens the composer too; see OnRightButtonDown.
-///
-/// Holding Shift passes the click through untouched. That matters more for left-click
-/// than it did for right: clicking bare desktop is also how you deselect icons and start
-/// a rubber-band selection, and this hook would otherwise eat both.
+/// Holding Shift passes any click through untouched.
 /// </summary>
 internal sealed class DesktopClickHook : IDisposable
 {
@@ -43,8 +44,8 @@ internal sealed class DesktopClickHook : IDisposable
     /// <summary>Tags the right-click we replay, so the hook lets its own echo through.</summary>
     private static readonly IntPtr ReplayMarker = new(0x57A11);
 
-    /// <summary>Raised with the screen-space click point, in physical pixels.</summary>
-    internal event Action<int, int>? DesktopClicked;
+    /// <summary>Raised on a left-click on empty desktop while the composer is open.</summary>
+    internal event Action? DesktopClickedWhileComposing;
 
     /// <summary>Raised on a double right-click on empty desktop, in physical pixels.</summary>
     internal event Action<int, int>? DesktopRightDoubleClicked;
@@ -56,6 +57,12 @@ internal sealed class DesktopClickHook : IDisposable
     /// window state here is safe.
     /// </summary>
     internal Func<bool>? IsComposing { get; set; }
+
+    /// <summary>
+    /// Whether a double right-click opens the composer. Off, every right-click goes
+    /// straight to the desktop, without the beat of waiting for a second one.
+    /// </summary>
+    internal bool RightClickEnabled { get; set; } = true;
 
     internal DesktopClickHook()
     {
@@ -124,20 +131,20 @@ internal sealed class DesktopClickHook : IDisposable
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
-        if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0)
+        if (IsComposing?.Invoke() != true || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0)
         {
-            return CallNextHookEx(_hook, nCode, wParam, lParam); // escape hatch
+            return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
         var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
         var hit = WindowFromPoint(data.pt);
         var onDesktop = IsEmptyDesktopAt(data.pt);
 
-        // A desktop click is rare enough to log every time, and without this there is no
-        // way to tell "the hook never fired" from "the hook decided this was not desktop".
+        // Without this there is no way to tell "the hook never fired" from "the hook
+        // decided this was not desktop".
         Log.Info($"Click at {data.pt.X},{data.pt.Y} over \"{ClassNameOf(hit)}\" " +
                  $"(root \"{ClassNameOf(GetAncestor(hit, GA_ROOT))}\") -> " +
-                 $"{(onDesktop ? "opening composer" : "passing through")}.");
+                 $"{(onDesktop ? "closing composer" : "passing through")}.");
 
         if (!onDesktop)
         {
@@ -145,7 +152,7 @@ internal sealed class DesktopClickHook : IDisposable
         }
 
         _swallowingClick = true;
-        DesktopClicked?.Invoke(data.pt.X, data.pt.Y);
+        DesktopClickedWhileComposing?.Invoke();
         return new IntPtr(1);
     }
 
@@ -158,7 +165,8 @@ internal sealed class DesktopClickHook : IDisposable
     {
         var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
 
-        if (data.dwExtraInfo == ReplayMarker || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0
+        if (!RightClickEnabled || data.dwExtraInfo == ReplayMarker
+            || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0
             || !IsEmptyDesktopAt(data.pt))
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);

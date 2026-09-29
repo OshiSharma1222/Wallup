@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Wallup.Diagnostics;
 using Wallup.Models;
 
@@ -8,7 +9,12 @@ namespace Wallup.Storage;
 /// <summary>Persists <see cref="AppSettings"/> next to the task list.</summary>
 internal sealed class SettingsStore
 {
-    private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
+    // Enums by name, so settings.json reads "OpenWith": "Both" rather than a bare 2.
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
 
     private readonly string _path;
 

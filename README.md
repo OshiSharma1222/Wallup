@@ -2,7 +2,7 @@
 
 > Your wallpaper is your to-do list. Click the desktop, drop a task, get on with your day.
 
-Left-click empty desktop, type a task, hit Enter. It drops onto the desktop as a small
+Double right-click empty desktop or press Ctrl+Alt, type a task, hit Enter. It drops onto the desktop as a small
 glass chip you can drag anywhere, tick off, set an alarm on, or delete. See
 [docs/IDEA.md](docs/IDEA.md) for the product thinking.
 
@@ -27,9 +27,10 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | Piece | File | Job |
 | --- | --- | --- |
 | Chip | `Views/ChipWindow.xaml` | One window per task. Drag to move, double-click to edit, tick, alarm, delete. |
-| Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on a desktop click. Takes one line, then gets out of the way. |
+| Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on either gesture. Takes one line, then gets out of the way. |
 | Chip host | `Views/ChipHost.cs` | Keeps chip windows in sync with the task list and fires alarms. |
-| Gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Swallows a left-click on empty desktop. |
+| Mouse gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Catches a double right-click on empty desktop. |
+| Key gesture | `Interop/CtrlAltHook.cs` | Global `WH_KEYBOARD_LL` hook. Catches Ctrl+Alt pressed on their own. |
 | Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above the desktop: over the wallpaper, under real windows. |
 | Focus | `Interop/ForegroundWindow.cs` | Hands the composer the keyboard, which a background process may not normally take. |
 | Glass | `Views/GlassCapsule.cs` | The pill. Refracts the wallpaper it is covering. |
@@ -91,12 +92,23 @@ chip asks what is behind it, it is already on screen and a grab would capture th
   the shell, which deactivates the composer the instant it opens; it flashes and vanishes,
   and the *next* click appears to open it late.
 
-### The click conflict
+### The gestures
 
-A plain left-click on empty desktop opens Wallup and is swallowed. **Hold Shift to pass
-the click through untouched.** That escape hatch matters: clicking bare desktop is also
-how you deselect icons and start a rubber-band selection, and this hook would otherwise
-eat both. A global hook with no way out is hostile.
+Two ways open the task box, and the `OpenWith` setting keeps either or both:
+
+- **Double right-click** on empty desktop opens it where you clicked. A single right-click
+  is held back for the double-click time, then handed to the desktop, so its menu still
+  appears, a beat late.
+- **Ctrl+Alt**, pressed and let go with nothing else, opens it at the pointer from
+  anywhere. It fires on the release, and any other key pressed in between cancels it,
+  because Ctrl+Alt is the start of many real shortcuts. The fake Ctrl that AltGr sends
+  is ignored, so AltGr on its own does nothing. The keyboard hook is only installed while
+  Ctrl+Alt is switched on, and it never swallows a key.
+
+Either gesture pressed again cancels the box. A plain left-click used to open it too, and
+was retired: it swallowed every click on bare desktop, deselecting icons and rubber-band
+selection included. It now only matters while the box is open, when clicking the desktop
+puts the box away and keeps what was typed. **Shift passes any click through untouched.**
 
 ### Finished tasks
 
@@ -125,7 +137,9 @@ was accepted. Tasks and settings live in `%APPDATA%\Wallup\`.
 Driven end to end on Windows 11 build 26200 at 150% scale, with synthetic input on a real
 desktop, reading the live window z-order and `tasks.json` after each step:
 
-- [x] Left-click bare desktop opens the composer at the cursor, and it takes the keyboard
+- [x] The composer takes the keyboard when it opens (seen with the retired left-click)
+- [x] Ctrl+Alt on its own opens the composer at the pointer and a second press closes
+      it; Ctrl+Alt+T leaves it alone (synthetic keys)
 - [x] Type + Enter drops a chip whose glass lands exactly on the click point
 - [x] A chip sits directly above Progman and below every ordinary app window
 - [x] Clicking a chip leaves it on the desktop layer instead of burying it behind the
@@ -145,15 +159,16 @@ Not yet exercised:
 
 - [ ] The alarm actually firing, and the chip pulsing when it does
 - [ ] Settings panel sliders
+- [ ] Double right-click opening the composer, and a single one still reaching the desktop
 - [ ] Shift+click passing a desktop click through
 - [ ] Two chips overlapping each other
 
 ## Known gaps
 
-- Clicking a desktop *icon* also opens Wallup. Both hit `SysListView32`; telling them apart
-  needs `LVM_HITTEST`. Until then, Shift+click is the way to select an icon.
-- Left-click is a busy gesture. Deselect and rubber-band selection are unavailable on bare
-  desktop without holding Shift.
+- Double right-clicking a desktop *icon* also opens Wallup. Both hit `SysListView32`;
+  telling them apart needs `LVM_HITTEST`.
+- Ctrl+Alt with a mouse click in between (a shortcut in some apps) still counts as the
+  gesture; the keyboard hook cannot see the mouse.
 - The sampler assumes the wallpaper is scaled to fill, which is the Windows default. Tile
   and Centre make the mapping approximate.
 - Single monitor. Multi-monitor placement is untested.

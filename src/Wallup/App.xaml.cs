@@ -15,6 +15,7 @@ public partial class App : Application
 
     private Mutex? _instanceMutex;
     private DesktopClickHook? _hook;
+    private CtrlAltHook? _keys;
     private System.Windows.Forms.NotifyIcon? _tray;
     private TaskListViewModel? _viewModel;
     private ChipHost? _chips;
@@ -51,6 +52,15 @@ public partial class App : Application
         _composer.Committed += OnTaskComposed;
 
         InstallHook();
+        ApplyGesture();
+        _viewModel.Settings.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(AppSettings.OpenWith))
+            {
+                ApplyGesture();
+            }
+        };
+
         InstallTray();
 
         Log.Info($"Ready. {_viewModel.ToDo.Count} task(s) on the desktop.");
@@ -67,23 +77,10 @@ public partial class App : Application
     private void InstallHook()
     {
         _hook = new DesktopClickHook();
-        _hook.DesktopClicked += (x, y) =>
-        {
-            // The hook callback must return immediately, so hand the UI work to the
-            // dispatcher rather than opening a window inline.
-            Dispatcher.BeginInvoke(() =>
-            {
-                // Clicking the desktop again is how you put the box away. Re-opening it
-                // there instead made an empty box follow every click and never leave.
-                if (_composer?.IsVisible == true)
-                {
-                    _composer.ClickedAway();
-                    return;
-                }
 
-                _composer?.ShowAt(x, y);
-            });
-        };
+        // Clicking the desktop again is how you put the box away. The hook callback must
+        // return immediately, so the UI work goes to the dispatcher.
+        _hook.DesktopClickedWhileComposing += () => Dispatcher.BeginInvoke(() => _composer?.ClickedAway());
         _hook.IsComposing = () => _composer?.IsVisible == true;
         _hook.DesktopRightDoubleClicked += (x, y) => Dispatcher.BeginInvoke(() =>
         {
@@ -100,6 +97,46 @@ public partial class App : Application
         if (!_hook.Install())
         {
             Log.Warn("Desktop click gesture unavailable; the tray menu is the only way in.");
+        }
+    }
+
+    /// <summary>
+    /// Switches the gestures to match the setting. The keyboard hook sees every key
+    /// pressed anywhere, so it is only installed while Ctrl+Alt is actually wanted.
+    /// </summary>
+    private void ApplyGesture()
+    {
+        var gesture = _viewModel!.Settings.OpenWith;
+        _hook!.RightClickEnabled = gesture != OpenGesture.CtrlAlt;
+
+        if (gesture == OpenGesture.RightClick)
+        {
+            _keys?.Dispose();
+            _keys = null;
+            return;
+        }
+
+        if (_keys is not null)
+        {
+            return;
+        }
+
+        _keys = new CtrlAltHook();
+        _keys.Pressed += () => Dispatcher.BeginInvoke(() =>
+        {
+            // A toggle, like the double right-click: pressed again, it cancels the box.
+            if (_composer?.IsVisible == true)
+            {
+                _composer.Cancel();
+                return;
+            }
+
+            ShowComposerAtCursor();
+        });
+
+        if (!_keys.Install())
+        {
+            Log.Warn("Ctrl+Alt gesture unavailable.");
         }
     }
 
@@ -147,6 +184,7 @@ public partial class App : Application
         _viewModel?.SaveSettings();
 
         _hook?.Dispose();
+        _keys?.Dispose();
         _chips?.Dispose();
 
         if (_tray is not null)
