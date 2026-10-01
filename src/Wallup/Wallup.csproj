@@ -25,4 +25,9 @@
     <Using Remove="System.Drawing" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Everything here is internal; the tests reach it through this. -->
+    <InternalsVisibleTo Include="Wallup.Tests" />
+  </ItemGroup>
+
 </Project>
