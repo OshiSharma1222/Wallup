@@ -168,8 +168,7 @@ internal sealed class ChipHost : IDisposable
 
         foreach (var (_, chip) in _chips)
         {
-            chip.Left = Math.Clamp(chip.Left, bounds.Left, Math.Max(bounds.Left, bounds.Right - chip.Width));
-            chip.Top = Math.Clamp(chip.Top, bounds.Top, Math.Max(bounds.Top, bounds.Bottom - chip.ActualHeight));
+            chip.KeepWithin(bounds);
         }
     }
 

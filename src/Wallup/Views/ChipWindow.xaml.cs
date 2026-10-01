@@ -102,6 +102,33 @@ internal partial class ChipWindow : Window
     /// <summary>Puts the chip back to its set opacity, for a tick taken back mid-fade.</summary>
     internal void CancelFade() => BeginAnimation(OpacityProperty, null);
 
+    /// <summary>
+    /// Pulls the chip back inside <paramref name="bounds"/> if it has strayed outside, and
+    /// records where it landed, which is what saves it.
+    /// </summary>
+    internal void KeepWithin(Rect bounds)
+    {
+        var left = Math.Clamp(Left, bounds.Left, Math.Max(bounds.Left, bounds.Right - Width));
+        var top = Math.Clamp(Top, bounds.Top, Math.Max(bounds.Top, bounds.Bottom - ActualHeight));
+        if (left == Left && top == Top)
+        {
+            return;
+        }
+
+        Left = left;
+        Top = top;
+
+        // Without this the move only lasted until the next start, when the chip went
+        // straight back to its saved place off screen.
+        _task.X = Left + Halo;
+        _task.Y = Top + Halo;
+
+        if (IsLoaded)
+        {
+            AdaptiveGlass.Apply(this);
+        }
+    }
+
     // ---- Dragging ---------------------------------------------------------
 
     private void OnDragStart(object sender, MouseButtonEventArgs e)
