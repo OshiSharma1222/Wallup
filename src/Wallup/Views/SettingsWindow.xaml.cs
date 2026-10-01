@@ -30,6 +30,10 @@ internal partial class SettingsWindow : Window
         _viewModel.RefreshDay();
         TodayLabel.Text = DateTime.Now.ToString("dddd d MMMM");
 
+        // The window is kept between showings, and the startup entry can be switched off
+        // in Task Manager meanwhile, so read it again rather than trusting the last look.
+        StartupBox.GetBindingExpression(System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty)?.UpdateTarget();
+
         Show();
         Activate();
     }

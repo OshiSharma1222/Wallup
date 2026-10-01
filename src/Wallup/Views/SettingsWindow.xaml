@@ -50,6 +50,12 @@
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         </Style>
 
+        <Style x:Key="Toggle" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+
         <!-- Ticking a row moves it between the lists and takes its chip off the desktop,
              exactly like ticking the chip. Unticking a done one puts the chip back. -->
         <DataTemplate x:Key="ToDoRow">
@@ -157,6 +163,12 @@
             <TextBlock Style="{DynamicResource Caption}" Text="Chip width" />
             <Slider Minimum="140" Maximum="520" TickFrequency="10" IsSnapToTickEnabled="True"
                     Value="{Binding Settings.ChipWidth}" Margin="0,5,0,0" />
+
+            <Rectangle Style="{StaticResource Rule}" />
+
+            <CheckBox x:Name="StartupBox" Style="{StaticResource Toggle}"
+                      Content="Start Wallup with Windows"
+                      IsChecked="{Binding StartWithWindows}" />
 
         </StackPanel>
     </Border>

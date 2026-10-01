@@ -62,11 +62,16 @@ public partial class App : Application
         };
 
         InstallTray();
+        StartupEntry.RefreshPath();
 
         Log.Info($"Ready. {_viewModel.ToDo.Count} task(s) on the desktop.");
 
-        // Starting the app by hand should show something, not just a tray icon.
-        ShowSettings();
+        // Starting the app by hand should show something, not just a tray icon. Starting
+        // with Windows should not: the chips are already on the desktop to say it is there.
+        if (!e.Args.Contains(StartupEntry.StartupArg))
+        {
+            ShowSettings();
+        }
     }
 
     /// <summary>Drops the new task where the composer was standing.</summary>

@@ -42,6 +42,13 @@ internal sealed class TaskListViewModel
 
     public AppSettings Settings { get; }
 
+    /// <summary>Kept in the registry rather than in <see cref="Settings"/>; see <see cref="StartupEntry"/>.</summary>
+    public bool StartWithWindows
+    {
+        get => StartupEntry.IsEnabled;
+        set => StartupEntry.IsEnabled = value;
+    }
+
     /// <summary>Everything not yet ticked, whichever day it was made.</summary>
     public ListCollectionView ToDo { get; }
 
