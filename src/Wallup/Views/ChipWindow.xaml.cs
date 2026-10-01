@@ -103,20 +103,15 @@ internal partial class ChipWindow : Window
     internal void CancelFade() => BeginAnimation(OpacityProperty, null);
 
     /// <summary>
-    /// Pulls the chip back inside <paramref name="bounds"/> if it has strayed outside, and
-    /// records where it landed, which is what saves it.
+    /// Pulls the chip fully onto a screen if it has strayed off one, and records where it
+    /// landed, which is what saves it.
     /// </summary>
-    internal void KeepWithin(Rect bounds)
+    internal void BringOnScreen()
     {
-        var left = Math.Clamp(Left, bounds.Left, Math.Max(bounds.Left, bounds.Right - Width));
-        var top = Math.Clamp(Top, bounds.Top, Math.Max(bounds.Top, bounds.Bottom - ActualHeight));
-        if (left == Left && top == Top)
+        if (!DesktopWindow.MoveOntoMonitor(this))
         {
             return;
         }
-
-        Left = left;
-        Top = top;
 
         // Without this the move only lasted until the next start, when the chip went
         // straight back to its saved place off screen.

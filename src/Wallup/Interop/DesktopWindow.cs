@@ -151,6 +151,44 @@ internal static class DesktopWindow
         return HwndTop;
     }
 
+    /// <summary>
+    /// Moves a window fully inside the work area of the monitor it is on, or of the
+    /// primary monitor if it is on none. Returns whether it had to move.
+    ///
+    /// Per monitor, and in physical pixels, because the obvious SystemParameters.WorkArea
+    /// is the primary monitor only: clamping to it dragged every chip off a second screen
+    /// whenever the display settings changed. The window's own centre picks the monitor,
+    /// so a chip half off the edge stays on the screen it mostly belongs to.
+    /// </summary>
+    internal static bool MoveOntoMonitor(Window window)
+    {
+        var handle = new WindowInteropHelper(window).Handle;
+        if (handle == IntPtr.Zero || !GetWindowRect(handle, out var rect))
+        {
+            return false;
+        }
+
+        var centre = new POINT { X = rect.Left + rect.Width / 2, Y = rect.Top + rect.Height / 2 };
+        var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfo(MonitorFromPoint(centre, MONITOR_DEFAULTTOPRIMARY), ref info))
+        {
+            return false;
+        }
+
+        var work = info.rcWork;
+        var x = Math.Clamp(rect.Left, work.Left, Math.Max(work.Left, work.Right - rect.Width));
+        var y = Math.Clamp(rect.Top, work.Top, Math.Max(work.Top, work.Bottom - rect.Height));
+        if (x == rect.Left && y == rect.Top)
+        {
+            return false;
+        }
+
+        // Moved by handle rather than through Left and Top, which are in a different unit
+        // on every monitor with its own scale. WPF reads the new place back from the move.
+        SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        return true;
+    }
+
     private static bool IsTopmost(IntPtr hWnd) => (GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
 
     private static bool IsDesktop(IntPtr hWnd) => DesktopClasses.Contains(ClassNameOf(hWnd));

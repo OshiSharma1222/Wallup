@@ -183,14 +183,12 @@ internal sealed class ChipHost : IDisposable
         }
     }
 
-    /// <summary>Drops every chip back onto the visible work area, for a resolution change.</summary>
+    /// <summary>Pulls every chip fully onto a screen, for a resolution or monitor change.</summary>
     internal void ReflowOntoScreen()
     {
-        var bounds = SystemParameters.WorkArea;
-
         foreach (var (_, chip) in _chips)
         {
-            chip.KeepWithin(bounds);
+            chip.BringOnScreen();
         }
     }
 
