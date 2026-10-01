@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using Wallup.Models;
 using Wallup.ViewModels;
 
@@ -31,6 +32,8 @@ internal sealed class ChipHost : IDisposable
         _alarmTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
         _alarmTimer.Tick += CheckAlarms;
         _alarmTimer.Start();
+
+        SystemEvents.DisplaySettingsChanged += OnDisplayChanged;
     }
 
     /// <summary>Raised when an alarm comes due, so the tray can say something.</summary>
@@ -161,6 +164,15 @@ internal sealed class ChipHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// A smaller resolution, a lost monitor or a new scale can leave chips off screen,
+    /// where nothing short of the tray menu would bring them back. SystemEvents raises
+    /// this on its own thread, and the work area is only settled once the shell has caught
+    /// up, so the reflow is queued behind everything already waiting on the UI thread.
+    /// </summary>
+    private void OnDisplayChanged(object? sender, EventArgs e) =>
+        Application.Current?.Dispatcher.BeginInvoke(ReflowOntoScreen, DispatcherPriority.Background);
+
     /// <summary>Drops every chip back onto the visible work area, for a resolution change.</summary>
     internal void ReflowOntoScreen()
     {
@@ -175,6 +187,7 @@ internal sealed class ChipHost : IDisposable
     public void Dispose()
     {
         _alarmTimer.Stop();
+        SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
         _viewModel.Tasks.CollectionChanged -= OnTasksChanged;
         _viewModel.Settings.PropertyChanged -= OnSettingsChanged;
 
