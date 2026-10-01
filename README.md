@@ -6,7 +6,7 @@ Double right-click empty desktop or press Ctrl+Alt, type a task, hit Enter. It d
 glass chip you can drag anywhere, tick off, set an alarm on, or delete. See
 [docs/IDEA.md](docs/IDEA.md) for the product thinking.
 
-**Status: v0.3.** See *What is verified* below for exactly what has been seen working and
+**Status: v0.4.** See *What is verified* below for exactly what has been seen working and
 what has not. v0.2 claimed a working loop it did not have: chips were being pinned
 *underneath* the desktop, so a task vanished the moment anything touched its z-order.
 
@@ -28,11 +28,14 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | --- | --- | --- |
 | Chip | `Views/ChipWindow.xaml` | One window per task. Drag to move, double-click to edit, tick, alarm, delete. |
 | Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on either gesture. Takes one line, then gets out of the way. |
-| Today and settings | `Views/SettingsWindow.xaml` | Today's to-do and done lists, the choice of gesture, and the appearance sliders. |
+| Today and settings | `Views/SettingsWindow.xaml` | Today's to-do and done lists, the choice of gesture, the appearance sliders, and starting with Windows. |
 | Chip host | `Views/ChipHost.cs` | Keeps chip windows in sync with the task list and fires alarms. |
 | Mouse gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Catches a double right-click on empty desktop. |
+| Icons | `Interop/DesktopIcons.cs` | Asks the icon view whether a point is on an icon, so icons keep their own menu. |
 | Key gesture | `Interop/CtrlAltHook.cs` | Global `WH_KEYBOARD_LL` hook. Catches Ctrl+Alt pressed on their own. |
 | Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above the desktop: over the wallpaper, under real windows. |
+| Explorer restarts | `Interop/ExplorerWatcher.cs` | Hears Explorer come back and hands the chips to the new desktop. |
+| Startup | `Storage/StartupEntry.cs` | The per-user Run entry, read together with Task Manager's on/off switch for it. |
 | Focus | `Interop/ForegroundWindow.cs` | Hands the composer the keyboard, which a background process may not normally take. |
 | Glass | `Views/GlassCapsule.cs` | The pill. Refracts the wallpaper it is covering. |
 | Adaptive tone | `Views/AdaptiveGlass.cs` | Samples the wallpaper behind each window and picks dark or light glass. |
@@ -99,7 +102,10 @@ Two ways open the task box, and the window lets you keep either or both:
 
 - **Double right-click** on empty desktop opens it where you clicked. A single right-click
   is held back for the double-click time, then handed to the desktop, so its menu still
-  appears, a beat late.
+  appears, a beat late. Clicks on an icon are left alone entirely. The icons and the bare
+  desktop are one window, so the hook sends `LVM_HITTEST` to it; the message carries a
+  pointer, so its struct is written into a scratch page inside Explorer and read back
+  out. That costs about a tenth of a millisecond, well inside the hook's budget.
 - **Ctrl+Alt**, pressed and let go with nothing else, opens it at the pointer from
   anywhere. It fires on the release, and any other key pressed in between cancels it,
   because Ctrl+Alt is the start of many real shortcuts. The fake Ctrl that AltGr sends
@@ -117,18 +123,39 @@ Ticking a task takes its chip off the desktop, but the task is kept until the en
 day so the window can list it under *Done*. Unticking it there puts the chip back.
 Finished tasks from earlier days are dropped at the next start.
 
+### Staying put
+
+- **Start with Windows** is a checkbox at the foot of the window. It writes the per-user
+  Run key, and passes `--startup` so a sign-in start stays in the tray instead of opening
+  the window. Task Manager switches startup apps off without deleting their Run entry, so
+  the box also reads Task Manager's verdict, and ticking the box turns it back on.
+- **Explorer restarts** take the desktop down and build a new one. The chips outlive it,
+  because Windows will not destroy another process's windows, but they are left without
+  an owner and so lose the Show Desktop fix. Explorer broadcasts `TaskbarCreated` when it
+  is back; Wallup waits for the new Progman and hands every chip to it.
+- **Display changes** pull any chip that ended up off screen back onto the work area of
+  the monitor its centre is on, or of the primary monitor if it is on none, and save the
+  new place. *Bring tasks on screen* in the tray menu does the same on demand.
+
 ## Running it
 
 ```
 dotnet build
 dotnet run --project src/Wallup
+dotnet test
 ```
+
+The tests cover the stores, the task model and the task list; everything that talks to
+the shell is checked by hand, as below.
 
 Diagnostics, because shell integration fails invisibly rather than loudly:
 
 ```
-Wallup.exe --diagnose    # dump the shell window tree and exit
+Wallup.exe --diagnose    # dump the shell window tree, check icon hit-testing, and exit
 ```
+
+The icon check hit-tests the centre of every desktop icon and a grid of spots well clear
+of them, and reports both, so a hit-test that answered "icon" everywhere cannot pass.
 
 Logs go to `%LOCALAPPDATA%\Wallup\logs\wallup.log`; a line there records whether acrylic
 was accepted. Tasks and settings live in `%APPDATA%\Wallup\`.
@@ -155,9 +182,24 @@ desktop, reading the live window z-order and `tasks.json` after each step:
 - [x] Clock button, alarm popup, and the alarm time, saved
 - [x] Delete button removes the chip and the task
 - [x] Tasks reload at their saved positions across restarts
+- [x] Icon hit-testing: `--diagnose` found all 15 desktop icons and left all 69 empty
+      spots alone, at about 0.1 ms per test
+- [x] Start with Windows, driven through UI Automation: ticking writes the Run entry with
+      `--startup`, unticking removes it, an entry switched off in Task Manager shows
+      unticked, and a stale path is updated without switching it back on
+- [x] Started with `--startup`, the window stays closed; started by hand, it opens
+- [x] A display change (a posted `WM_DISPLAYCHANGE`) pulled a chip from 3000 px left of
+      the screen, and one hanging off the right edge, back onto it, and saved both. A chip
+      already on screen did not move
+- [x] A posted `TaskbarCreated` makes the watcher wait for Progman and re-own every chip
 
 Not yet exercised:
 
+- [ ] A real Explorer restart. Only the broadcast was faked; restarting Explorer closes
+      every open folder window, so it was not done on a machine in use
+- [ ] A real resolution or monitor change, and a second monitor at all
+- [ ] Double right-clicking an icon with a real mouse. The hit-test is verified on its
+      own; the hook calling it is not
 - [ ] The alarm actually firing, and the chip pulsing when it does
 - [ ] The today and settings window: both lists, ticking from it, the gesture switch and
       the sliders
@@ -167,13 +209,12 @@ Not yet exercised:
 
 ## Known gaps
 
-- Double right-clicking a desktop *icon* also opens Wallup. Both hit `SysListView32`;
-  telling them apart needs `LVM_HITTEST`.
 - Ctrl+Alt with a mouse click in between (a shortcut in some apps) still counts as the
   gesture; the keyboard hook cannot see the mouse.
 - The sampler assumes the wallpaper is scaled to fill, which is the Windows default. Tile
   and Centre make the mapping approximate.
 - Single monitor. Multi-monitor placement is untested.
-- An Explorer restart may strip the z-order pinning; there is no watcher for it yet.
+- Running Wallup elevated would stop Explorer's `TaskbarCreated` reaching it, since
+  Windows filters messages from a lower integrity level. It is not meant to run elevated.
 - The glass refracts the *wallpaper*, so a chip overlapping another chip shows the
   wallpaper rather than the chip underneath.

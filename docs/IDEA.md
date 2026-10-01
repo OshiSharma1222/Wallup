@@ -90,9 +90,10 @@ Still open:
   window, which DWM will not put a backdrop behind, so a chip paints the wallpaper patch
   it is covering instead. That is exact while a chip sits on bare desktop, which is where
   chips live - but it means a chip over another chip shows wallpaper, not the chip.
-- **Telling an icon click from an empty-desktop click.** Both land on `SysListView32`, so
-  clicking an icon currently opens Wallup too. Needs `LVM_HITTEST`.
-- **Surviving an Explorer restart.** The attach is lost and needs a manual reattach today.
+- ~~**Telling an icon click from an empty-desktop click.**~~ Done with `LVM_HITTEST`,
+  marshalled through a scratch page in Explorer's memory.
+- **Surviving an Explorer restart.** Handled: chips are handed to the new desktop when
+  Explorer broadcasts `TaskbarCreated`. Not yet seen through a real restart.
 
 ## Prior art to study
 
@@ -112,4 +113,5 @@ product.
 3. ~~Build the MVP checklist above.~~ Built; the gesture still needs a human to confirm it
    feels right.
 4. Dogfood for a week, compare against Themia and YYNote.
-5. Close the three gaps above: icon hit-testing, Explorer restart, multi-monitor.
+5. Close the three gaps above: ~~icon hit-testing~~, Explorer restart (built, to be seen
+   through a real restart), multi-monitor.
