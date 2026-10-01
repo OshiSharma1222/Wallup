@@ -222,8 +222,8 @@ internal sealed class DesktopClickHook : IDisposable
 
     /// <summary>
     /// True when the point is over bare desktop. The icon list view covers the whole
-    /// desktop, so an actual icon currently counts too - telling them apart needs
-    /// LVM_HITTEST and is tracked as a known gap.
+    /// desktop, so it is asked whether there is an icon under the point; double
+    /// right-clicking an icon used to open the composer instead of the icon's menu.
     /// </summary>
     private static bool IsEmptyDesktopAt(POINT pt)
     {
@@ -233,7 +233,13 @@ internal sealed class DesktopClickHook : IDisposable
             return false;
         }
 
-        if (ClassNameOf(hWnd) is "SysListView32" or "SHELLDLL_DefView" or "WorkerW" or "Progman")
+        var className = ClassNameOf(hWnd);
+        if (className == "SysListView32")
+        {
+            return !DesktopIcons.IsIconAt(hWnd, pt);
+        }
+
+        if (className is "SHELLDLL_DefView" or "WorkerW" or "Progman")
         {
             return true;
         }

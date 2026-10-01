@@ -45,6 +45,14 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern IntPtr WindowFromPoint(POINT point);
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
 
@@ -87,6 +95,39 @@ internal static class NativeMethods
     internal const uint WM_SPAWN_WORKER = 0x052C;
 
     internal const uint SMTO_NORMAL = 0x0000;
+    internal const uint SMTO_ABORTIFHUNG = 0x0002;
+
+    // ---- Another process's memory (for messages that carry a pointer) -----
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool CloseHandle(IntPtr hObject);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    internal static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, nuint dwSize, uint flAllocationType, uint flProtect);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, nuint dwSize, uint dwFreeType);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, nuint nSize, out nuint lpNumberOfBytesWritten);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, nuint nSize, out nuint lpNumberOfBytesRead);
+
+    internal const uint PROCESS_VM_OPERATION = 0x0008;
+    internal const uint PROCESS_VM_READ = 0x0010;
+    internal const uint PROCESS_VM_WRITE = 0x0020;
+    internal const uint MEM_COMMIT = 0x1000;
+    internal const uint MEM_RESERVE = 0x2000;
+    internal const uint MEM_RELEASE = 0x8000;
+    internal const uint PAGE_READWRITE = 0x04;
 
     // ---- Reparenting / z-order --------------------------------------------
 
