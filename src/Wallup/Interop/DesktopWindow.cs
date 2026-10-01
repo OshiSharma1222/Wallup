@@ -60,6 +60,22 @@ internal static class DesktopWindow
         var exStyle = GetWindowLong(handle, GWL_EXSTYLE);
         SetWindowLong(handle, GWL_EXSTYLE, exStyle | WS_EX_TOOLWINDOW);
 
+        Reattach(window);
+        HwndSource.FromHwnd(handle)?.AddHook(KeepOnDesktop);
+    }
+
+    /// <summary>
+    /// Hands a pinned window to the current desktop. Pin does this once; it has to be done
+    /// again whenever Explorer restarts, because the desktop it was handed to is gone.
+    /// </summary>
+    internal static void Reattach(Window window)
+    {
+        var handle = new WindowInteropHelper(window).Handle;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
         // Ride along with the desktop when Show Desktop raises it.
         var progman = FindWindow("Progman", null);
         if (progman != IntPtr.Zero)
@@ -68,7 +84,6 @@ internal static class DesktopWindow
         }
 
         Sink(handle);
-        HwndSource.FromHwnd(handle)?.AddHook(KeepOnDesktop);
     }
 
     /// <summary>Drops a window into the slot immediately above the desktop.</summary>

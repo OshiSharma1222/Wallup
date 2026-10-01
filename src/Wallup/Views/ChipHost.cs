@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using Wallup.Interop;
 using Wallup.Models;
 using Wallup.ViewModels;
 
@@ -172,6 +173,15 @@ internal sealed class ChipHost : IDisposable
     /// </summary>
     private void OnDisplayChanged(object? sender, EventArgs e) =>
         Application.Current?.Dispatcher.BeginInvoke(ReflowOntoScreen, DispatcherPriority.Background);
+
+    /// <summary>Puts every chip back on a desktop that Explorer has just rebuilt.</summary>
+    internal void Reattach()
+    {
+        foreach (var (_, chip) in _chips)
+        {
+            DesktopWindow.Reattach(chip);
+        }
+    }
 
     /// <summary>Drops every chip back onto the visible work area, for a resolution change.</summary>
     internal void ReflowOntoScreen()

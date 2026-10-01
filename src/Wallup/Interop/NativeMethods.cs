@@ -81,6 +81,9 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern uint GetDoubleClickTime();
 
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    internal static extern uint RegisterWindowMessage(string lpString);
+
     // ---- The WorkerW summon -----------------------------------------------
 
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]

@@ -16,6 +16,7 @@ public partial class App : Application
     private Mutex? _instanceMutex;
     private DesktopClickHook? _hook;
     private CtrlAltHook? _keys;
+    private ExplorerWatcher? _explorer;
     private System.Windows.Forms.NotifyIcon? _tray;
     private TaskListViewModel? _viewModel;
     private ChipHost? _chips;
@@ -63,6 +64,13 @@ public partial class App : Application
 
         InstallTray();
         StartupEntry.RefreshPath();
+
+        _explorer = new ExplorerWatcher();
+        _explorer.Restarted += () =>
+        {
+            Log.Info($"Explorer is back; re-pinning {_viewModel.ToDo.Count} chip(s) to the new desktop.");
+            _chips.Reattach();
+        };
 
         Log.Info($"Ready. {_viewModel.ToDo.Count} task(s) on the desktop.");
 
@@ -200,6 +208,7 @@ public partial class App : Application
 
         _hook?.Dispose();
         _keys?.Dispose();
+        _explorer?.Dispose();
         _chips?.Dispose();
 
         if (_tray is not null)
