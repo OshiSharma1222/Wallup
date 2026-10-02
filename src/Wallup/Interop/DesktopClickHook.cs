@@ -259,11 +259,16 @@ internal sealed class DesktopClickHook : IDisposable
         }
 
         var size = Marshal.SizeOf<INPUT>();
-        SendInput(2,
+        var sent = SendInput(2,
         [
             new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_RIGHTDOWN, dwExtraInfo = ReplayMarker } },
             new INPUT { type = INPUT_MOUSE, mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_RIGHTUP, dwExtraInfo = ReplayMarker } },
         ], size);
+
+        // If this fails, a plain right-click on the desktop does nothing at all.
+        Log.InfoSoon(sent == 2
+            ? "No second right-click; handed the first back to the desktop."
+            : $"No second right-click, and handing it back failed ({sent}/2 sent, win32 error {Marshal.GetLastWin32Error()}).");
     }
 
     /// <summary>
