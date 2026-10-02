@@ -23,6 +23,16 @@ internal sealed class CtrlAltHook : IDisposable
     /// </summary>
     private const uint AltGrFakeCtrl = 0x21D;
 
+    /// <summary>Set on a key another program typed with SendInput rather than the user.</summary>
+    private const uint LLKHF_INJECTED = 0x10;
+
+    /// <summary>
+    /// Keys that do nothing, which shortcut tools tap so that letting go of Alt or Win does
+    /// not open a menu: 0xFF is unassigned, 0xE8 is the one AutoHotkey uses, 0x07 is
+    /// reserved.
+    /// </summary>
+    private static readonly HashSet<uint> MaskKeys = [0x07, 0xE8, 0xFF];
+
     // Rooted for the life of the hook, for the same reason as the mouse hook's.
     private readonly LowLevelKeyboardProc _proc;
     private IntPtr _hook = IntPtr.Zero;
@@ -35,6 +45,9 @@ internal sealed class CtrlAltHook : IDisposable
 
     /// <summary>Some other key joined in, so this is a shortcut, not the gesture.</summary>
     private bool _spoiled;
+
+    /// <summary>The key that spoiled it, for the log.</summary>
+    private uint _spoiledBy;
 
     internal CtrlAltHook()
     {
@@ -109,6 +122,17 @@ internal sealed class CtrlAltHook : IDisposable
         {
             _altDown = true;
         }
+        else if ((key.flags & LLKHF_INJECTED) != 0 || MaskKeys.Contains(key.vkCode))
+        {
+            // Not the user reaching for a shortcut but another program typing. Dictation
+            // tools such as Wispr Flow listen for Ctrl, Alt and Win themselves, and tap a
+            // do-nothing key so their own shortcut does not open a menu - which, counted
+            // here, cancelled every Ctrl+Alt the moment Alt went down.
+            if (_ctrlDown || _altDown)
+            {
+                Log.InfoSoon($"Ignored key 0x{key.vkCode:X2} typed by another program during Ctrl+Alt.");
+            }
+        }
         else if (_ctrlDown || _altDown)
         {
             // A key-up can go missing - one released on the lock screen or the Ctrl+Alt+Del
@@ -116,7 +140,11 @@ internal sealed class CtrlAltHook : IDisposable
             // every gesture after it. Ask Windows before believing it.
             _ctrlDown &= IsHeld(VK_LCONTROL) || IsHeld(VK_RCONTROL);
             _altDown &= IsHeld(VK_LMENU) || IsHeld(VK_RMENU);
-            _spoiled = _ctrlDown || _altDown;
+            if (!_spoiled && (_ctrlDown || _altDown))
+            {
+                _spoiled = true;
+                _spoiledBy = key.vkCode;
+            }
         }
 
         if (_ctrlDown && _altDown)
@@ -152,6 +180,13 @@ internal sealed class CtrlAltHook : IDisposable
         // Only a clean start - both keys up - clears the slate for the next attempt.
         if (!_ctrlDown && !_altDown)
         {
+            if (_armed && _spoiled)
+            {
+                // Usually a real shortcut, Ctrl+Alt+something. Logged so that a gesture
+                // that "does nothing" can be told apart from one that never arrived.
+                Log.InfoSoon($"Ctrl+Alt with key 0x{_spoiledBy:X2} -> a shortcut, not the gesture.");
+            }
+
             _armed = false;
             _spoiled = false;
         }
