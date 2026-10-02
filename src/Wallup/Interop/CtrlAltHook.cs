@@ -136,7 +136,7 @@ internal sealed class CtrlAltHook : IDisposable
         if (_armed && !_spoiled)
         {
             _armed = false;
-            Log.Info("Ctrl+Alt pressed on its own -> toggling composer.");
+            Log.InfoSoon("Ctrl+Alt pressed on its own -> toggling composer.");
             Pressed?.Invoke();
         }
 

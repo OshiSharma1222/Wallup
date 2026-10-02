@@ -21,6 +21,17 @@ internal static class Log
 
     internal static void Warn(string message) => Write("WARN ", message);
 
+    /// <summary>
+    /// For the input hooks. Windows unhooks a hook that is slow to answer, and a file write
+    /// can be slow whenever the disk or a virus scanner feels like it, so the line is
+    /// stamped now and written from elsewhere.
+    /// </summary>
+    internal static void InfoSoon(string message)
+    {
+        var line = Format("INFO ", message);
+        ThreadPool.QueueUserWorkItem(_ => Raw(line));
+    }
+
     internal static void Error(string message, Exception? ex = null) =>
         Write("ERROR", ex is null ? message : $"{message}{Environment.NewLine}{ex}");
 
@@ -41,6 +52,8 @@ internal static class Log
         }
     }
 
-    private static void Write(string level, string message) =>
-        Raw($"{DateTime.Now:HH:mm:ss.fff} {level} {message}");
+    private static void Write(string level, string message) => Raw(Format(level, message));
+
+    private static string Format(string level, string message) =>
+        $"{DateTime.Now:HH:mm:ss.fff} {level} {message}";
 }

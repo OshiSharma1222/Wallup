@@ -174,7 +174,7 @@ internal sealed class DesktopClickHook : IDisposable
 
         // Without this there is no way to tell "the hook never fired" from "the hook
         // decided this was not desktop".
-        Log.Info($"Click at {data.pt.X},{data.pt.Y} over \"{ClassNameOf(hit)}\" " +
+        Log.InfoSoon($"Click at {data.pt.X},{data.pt.Y} over \"{ClassNameOf(hit)}\" " +
                  $"(root \"{ClassNameOf(GetAncestor(hit, GA_ROOT))}\") -> " +
                  $"{(onDesktop ? "closing composer" : "passing through")}.");
 
@@ -211,7 +211,7 @@ internal sealed class DesktopClickHook : IDisposable
             var root = GetAncestor(WindowFromPoint(data.pt), GA_ROOT);
             if (ClassNameOf(root) is "Progman" or "WorkerW")
             {
-                Log.Info($"Right-click at {data.pt.X},{data.pt.Y} is on a desktop icon -> passing through.");
+                Log.InfoSoon($"Right-click at {data.pt.X},{data.pt.Y} is on a desktop icon -> passing through.");
             }
 
             return CallNextHookEx(_hook, nCode, wParam, lParam);
@@ -228,13 +228,13 @@ internal sealed class DesktopClickHook : IDisposable
         if (isDouble)
         {
             _rightPending = false;
-            Log.Info($"Double right-click at {data.pt.X},{data.pt.Y} -> " +
+            Log.InfoSoon($"Double right-click at {data.pt.X},{data.pt.Y} -> " +
                      $"{(IsComposing ? "cancelling composer" : "opening composer")}.");
             DesktopRightDoubleClicked?.Invoke(data.pt.X, data.pt.Y);
             return new IntPtr(1);
         }
 
-        Log.Info($"Right-click at {data.pt.X},{data.pt.Y} on empty desktop -> waiting for a second one.");
+        Log.InfoSoon($"Right-click at {data.pt.X},{data.pt.Y} on empty desktop -> waiting for a second one.");
         _rightPending = true;
         _lastRightTime = data.time;
         _lastRightPoint = data.pt;
