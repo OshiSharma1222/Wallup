@@ -27,7 +27,7 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | Piece | File | Job |
 | --- | --- | --- |
 | Chip | `Views/ChipWindow.xaml` | One window per task. Drag to move, double-click to edit, tick, alarm, delete. |
-| Composer | `Views/ComposerWindow.xaml` | Opens at the cursor on either gesture. Takes one line, then gets out of the way. |
+| Composer | `Views/ComposerWindow.xaml` | The Flow bar: a dark pill above the taskbar, after Wispr Flow. Takes one line, then shrinks away. |
 | Today and settings | `Views/SettingsWindow.xaml` | Today's to-do and done lists, the choice of gesture, the appearance sliders, and starting with Windows. |
 | Chip host | `Views/ChipHost.cs` | Keeps chip windows in sync with the task list and fires alarms. |
 | Mouse gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Catches a double right-click on empty desktop. |
@@ -105,16 +105,19 @@ chip asks what is behind it, it is already on screen and a grab would capture th
 
 ### The gestures
 
-Two ways open the task box, and the window lets you keep either or both:
+Two ways open the task box, and the window lets you keep either or both. The box itself
+is always the same Flow bar, centred just above the taskbar: it grows out of a sliver, a
+little waveform jumps as you type, and Enter or Esc shrinks it away. The task lands where
+the gesture happened, not where the bar is.
 
-- **Double right-click** on empty desktop opens it where you clicked. A single right-click
+- **Double right-click** on empty desktop opens it, and the task lands where you clicked. A single right-click
   is held back for the double-click time, then handed to the desktop, so its menu still
   appears, a beat late. Clicks on an icon are left alone entirely. The icons and the bare
   desktop are one window, so the hook sends `LVM_HITTEST` to it; the message carries a
   pointer, so its struct is written into a scratch page inside Explorer and read back
   out. That costs about a tenth of a millisecond, well inside the hook's budget.
-- **Ctrl+Alt**, pressed and let go with nothing else, opens it at the pointer from
-  anywhere. It fires on the release, and any other key pressed in between cancels it,
+- **Ctrl+Alt**, pressed and let go with nothing else, opens it from anywhere,
+  and the task lands at the pointer. It fires on the release, and any other key pressed in between cancels it,
   because Ctrl+Alt is the start of many real shortcuts. The fake Ctrl that AltGr sends
   is ignored, so AltGr on its own does nothing. The keyboard hook is only installed while
   Ctrl+Alt is switched on, and it never swallows a key.
@@ -173,7 +176,7 @@ Driven end to end on Windows 11 build 26200 at 150% scale, with synthetic input 
 desktop, reading the live window z-order and `tasks.json` after each step:
 
 - [x] The composer takes the keyboard when it opens (seen with the retired left-click)
-- [x] Ctrl+Alt on its own opens the composer at the pointer and a second press closes
+- [x] Ctrl+Alt on its own opens the composer and a second press closes
       it; Ctrl+Alt+T leaves it alone (synthetic keys)
 - [x] Type + Enter drops a chip whose glass lands exactly on the click point
 - [x] A chip sits directly above Progman and below every ordinary app window
@@ -210,6 +213,8 @@ Not yet exercised:
 - [ ] The alarm actually firing, and the chip pulsing when it does
 - [ ] The today and settings window: both lists, ticking from it, the gesture switch and
       the sliders
+- [x] The Flow bar opens above the taskbar, grows out of a sliver, shows typing, and
+  shrinks away on a second Ctrl+Alt without making a task (synthetic keys)
 - [ ] Double right-click opening the composer, and a single one still reaching the desktop
 - [ ] Shift+click passing a desktop click through
 - [ ] Two chips overlapping each other
