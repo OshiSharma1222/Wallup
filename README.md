@@ -33,6 +33,7 @@ So tasks are not pixels on the wallpaper. Each task is its own real window.
 | Mouse gesture | `Interop/DesktopClickHook.cs` | Global `WH_MOUSE_LL` hook. Catches a double right-click on empty desktop. |
 | Icons | `Interop/DesktopIcons.cs` | Asks the icon view whether a point is on an icon, so icons keep their own menu. |
 | Key gesture | `Interop/CtrlAltHook.cs` | Global `WH_KEYBOARD_LL` hook. Catches Ctrl+Alt pressed on their own. |
+| Hook thread | `Interop/HookThread.cs` | Runs both hooks on a thread of their own, so a busy UI can never get them removed. |
 | Desktop layer | `Interop/DesktopWindow.cs` | Pins chips just above the desktop: over the wallpaper, under real windows. |
 | Explorer restarts | `Interop/ExplorerWatcher.cs` | Hears Explorer come back and hands the chips to the new desktop. |
 | Startup | `Storage/StartupEntry.cs` | The per-user Run entry, read together with Task Manager's on/off switch for it. |
@@ -72,7 +73,7 @@ Every colour in `Theme.xaml` is a `DynamicResource` for exactly this reason - a
 `Wallpaper` reads the wallpaper file rather than grabbing the screen, because by the time a
 chip asks what is behind it, it is already on screen and a grab would capture the chip.
 
-### Five traps worth knowing
+### Six traps worth knowing
 
 - **`SetWindowPos` names the window that goes *above* yours.** Passing Progman therefore
   files the window *under* the desktop, where it is invisible - and re-asserting that on
@@ -92,6 +93,12 @@ chip asks what is behind it, it is already on screen and a grab would capture th
 - **Acrylic needs a non-layered window.** `AllowsTransparency="True"` makes a WPF window
   layered, and DWM refuses to draw a backdrop behind one. That trade is why chips refract
   the wallpaper themselves and only the settings panel uses acrylic.
+- **Windows removes a slow hook without a word.** A low-level hook that misses its
+  deadline even once is unhooked: no error, no callback, the gestures just stop until a
+  restart. On the UI thread that took only a chip re-rendering its glass during a drag,
+  or the wallpaper reloading after a resume, while the pointer moved. Both hooks dying at
+  once was the tell. They now live on `HookThread`, which runs nothing else, and are
+  hooked again after every resume and unlock.
 - **Swallow both halves of the click.** Letting the button-up through hands focus back to
   the shell, which deactivates the composer the instant it opens; it flashes and vanishes,
   and the *next* click appears to open it late.
