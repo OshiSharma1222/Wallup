@@ -203,6 +203,11 @@ internal sealed class DesktopClickHook : IDisposable
     {
         var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
 
+        // Temporary trace while the gesture is being chased: every right-click, and what
+        // was under it.
+        Log.InfoSoon($"Right button down at {data.pt.X},{data.pt.Y} over \"{ClassNameOf(GetAncestor(WindowFromPoint(data.pt), GA_ROOT))}\"" +
+                     $"{(data.dwExtraInfo == ReplayMarker ? " (our replay)" : "")}, enabled {RightClickEnabled}, pending {_rightPending}.");
+
         if (!RightClickEnabled || data.dwExtraInfo == ReplayMarker
             || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0)
         {

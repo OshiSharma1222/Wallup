@@ -103,6 +103,15 @@ internal sealed class CtrlAltHook : IDisposable
             var isDown = message is WM_KEYDOWN or WM_SYSKEYDOWN;
             var isUp = message is WM_KEYUP or WM_SYSKEYUP;
 
+            // Temporary trace while the gesture is being chased: modifiers only, never the
+            // keys typed with them.
+            if ((isDown || isUp) && (IsCtrl(key) || IsAlt(key) || key.vkCode == VK_LCONTROL))
+            {
+                Log.InfoSoon($"Key 0x{key.vkCode:X2} scan 0x{key.scanCode:X} {(isDown ? "down" : "up")}" +
+                             $"{((key.flags & LLKHF_INJECTED) != 0 ? " injected" : "")}" +
+                             $" (ctrl {_ctrlDown}, alt {_altDown}, armed {_armed}, spoiled {_spoiled}).");
+            }
+
             if (isDown)
             {
                 OnDown(key);
