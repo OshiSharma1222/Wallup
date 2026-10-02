@@ -202,6 +202,8 @@ desktop, reading the live window z-order and `tasks.json` after each step:
       the screen, and one hanging off the right edge, back onto it, and saved both. A chip
       already on screen did not move
 - [x] A posted `TaskbarCreated` makes the watcher wait for Progman and re-own every chip
+- [x] The Flow bar opens above the taskbar, grows out of a sliver, shows typing, and
+      shrinks away on a second Ctrl+Alt without making a task (synthetic keys)
 
 Not yet exercised:
 
@@ -213,8 +215,6 @@ Not yet exercised:
 - [ ] The alarm actually firing, and the chip pulsing when it does
 - [ ] The today and settings window: both lists, ticking from it, the gesture switch and
       the sliders
-- [x] The Flow bar opens above the taskbar, grows out of a sliver, shows typing, and
-  shrinks away on a second Ctrl+Alt without making a task (synthetic keys)
 - [ ] Double right-click opening the composer, and a single one still reaching the desktop
 - [ ] Shift+click passing a desktop click through
 - [ ] Two chips overlapping each other
