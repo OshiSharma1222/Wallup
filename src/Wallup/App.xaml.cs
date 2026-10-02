@@ -14,6 +14,7 @@ public partial class App : Application
     private const string InstanceMutexName = "Wallup.SingleInstance";
 
     private Mutex? _instanceMutex;
+    private HookThread? _hooks;
     private DesktopClickHook? _hook;
     private CtrlAltHook? _keys;
     private ExplorerWatcher? _explorer;
@@ -52,6 +53,7 @@ public partial class App : Application
         _composer = new ComposerWindow();
         _composer.Committed += OnTaskComposed;
 
+        _hooks = new HookThread();
         InstallHook();
         ApplyGesture();
         _viewModel.Settings.PropertyChanged += (_, args) =>
@@ -92,12 +94,14 @@ public partial class App : Application
 
     private void InstallHook()
     {
-        _hook = new DesktopClickHook();
+        // Made on the hook thread, because its replay timer belongs to the thread it is
+        // made on, and the hook calls arrive there too.
+        _hook = _hooks!.Invoke(() => new DesktopClickHook());
 
         // Clicking the desktop again is how you put the box away. The hook callback must
         // return immediately, so the UI work goes to the dispatcher.
         _hook.DesktopClickedWhileComposing += () => Dispatcher.BeginInvoke(() => _composer?.ClickedAway());
-        _hook.IsComposing = () => _composer?.IsVisible == true;
+        _composer!.IsVisibleChanged += (_, _) => _hook.IsComposing = _composer.IsVisible;
         _hook.DesktopRightDoubleClicked += (x, y) => Dispatcher.BeginInvoke(() =>
         {
             // A toggle: the first opens the box, the next cancels it, exactly like Escape.
@@ -110,7 +114,7 @@ public partial class App : Application
             _composer?.ShowAt(x, y);
         });
 
-        if (!_hook.Install())
+        if (!_hooks.Invoke(_hook.Install))
         {
             Log.Warn("Desktop click gesture unavailable; the tray menu is the only way in.");
         }
@@ -127,7 +131,11 @@ public partial class App : Application
 
         if (gesture == OpenGesture.RightClick)
         {
-            _keys?.Dispose();
+            if (_keys is { } keys)
+            {
+                _hooks!.Invoke(keys.Dispose);
+            }
+
             _keys = null;
             return;
         }
@@ -150,7 +158,7 @@ public partial class App : Application
             ShowComposerAtCursor();
         });
 
-        if (!_keys.Install())
+        if (!_hooks!.Invoke(_keys.Install))
         {
             Log.Warn("Ctrl+Alt gesture unavailable.");
         }
@@ -206,8 +214,12 @@ public partial class App : Application
     {
         _viewModel?.SaveSettings();
 
-        _hook?.Dispose();
-        _keys?.Dispose();
+        _hooks?.Invoke(() =>
+        {
+            _hook?.Dispose();
+            _keys?.Dispose();
+        });
+        _hooks?.Dispose();
         _explorer?.Dispose();
         _chips?.Dispose();
 

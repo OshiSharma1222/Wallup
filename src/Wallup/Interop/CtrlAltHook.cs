@@ -41,7 +41,7 @@ internal sealed class CtrlAltHook : IDisposable
         _proc = OnKeyEvent;
     }
 
-    /// <summary>Raised on the UI thread once Ctrl+Alt is pressed and released on its own.</summary>
+    /// <summary>Raised on the hook thread once Ctrl+Alt is pressed and released on its own.</summary>
     internal event Action? Pressed;
 
     internal bool Install()

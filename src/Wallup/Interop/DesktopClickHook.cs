@@ -50,19 +50,30 @@ internal sealed class DesktopClickHook : IDisposable
     /// <summary>Raised on a double right-click on empty desktop, in physical pixels.</summary>
     internal event Action<int, int>? DesktopRightDoubleClicked;
 
+    private volatile bool _isComposing;
+    private volatile bool _rightClickEnabled = true;
+
     /// <summary>
     /// Whether the composer is open. A held-back right-click is then simply dropped rather
     /// than replayed: handing it to the desktop would take focus away and close the box,
-    /// text and all, under the desktop menu. The hook runs on the UI thread, so reading
-    /// window state here is safe.
+    /// text and all, under the desktop menu. The hook runs on its own thread, so the UI
+    /// keeps this up to date rather than the hook asking the window.
     /// </summary>
-    internal Func<bool>? IsComposing { get; set; }
+    internal bool IsComposing
+    {
+        get => _isComposing;
+        set => _isComposing = value;
+    }
 
     /// <summary>
     /// Whether a double right-click opens the composer. Off, every right-click goes
     /// straight to the desktop, without the beat of waiting for a second one.
     /// </summary>
-    internal bool RightClickEnabled { get; set; } = true;
+    internal bool RightClickEnabled
+    {
+        get => _rightClickEnabled;
+        set => _rightClickEnabled = value;
+    }
 
     internal DesktopClickHook()
     {
@@ -84,7 +95,7 @@ internal sealed class DesktopClickHook : IDisposable
         }
 
         // A low-level hook is global but runs on the installing thread, so this must be
-        // called from a thread with a message pump - the WPF UI thread.
+        // called from a thread with a message pump - the HookThread.
         _hook = SetWindowsHookEx(WH_MOUSE_LL, _proc, GetModuleHandle(null), 0);
 
         if (_hook == IntPtr.Zero)
@@ -131,7 +142,7 @@ internal sealed class DesktopClickHook : IDisposable
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
-        if (IsComposing?.Invoke() != true || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0)
+        if (!IsComposing || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0)
         {
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
@@ -184,7 +195,7 @@ internal sealed class DesktopClickHook : IDisposable
         {
             _rightPending = false;
             Log.Info($"Double right-click at {data.pt.X},{data.pt.Y} -> " +
-                     $"{(IsComposing?.Invoke() == true ? "cancelling composer" : "opening composer")}.");
+                     $"{(IsComposing ? "cancelling composer" : "opening composer")}.");
             DesktopRightDoubleClicked?.Invoke(data.pt.X, data.pt.Y);
             return new IntPtr(1);
         }
@@ -207,7 +218,7 @@ internal sealed class DesktopClickHook : IDisposable
 
         _rightPending = false;
 
-        if (IsComposing?.Invoke() == true)
+        if (IsComposing)
         {
             return;
         }
