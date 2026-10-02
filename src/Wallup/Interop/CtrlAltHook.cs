@@ -57,7 +57,7 @@ internal sealed class CtrlAltHook : IDisposable
     /// <summary>Raised on the hook thread once Ctrl+Alt is pressed and released on its own.</summary>
     internal event Action? Pressed;
 
-    internal bool Install()
+    internal bool Install(bool quiet = false)
     {
         if (_hook != IntPtr.Zero)
         {
@@ -72,14 +72,18 @@ internal sealed class CtrlAltHook : IDisposable
             return false;
         }
 
-        Log.Info("Ctrl+Alt hook installed.");
+        if (!quiet)
+        {
+            Log.Info("Ctrl+Alt hook installed.");
+        }
+
         return true;
     }
 
     /// <summary>Hooks again from scratch; see <see cref="DesktopClickHook.Rearm"/>.</summary>
     internal void Rearm()
     {
-        if (_hook == IntPtr.Zero)
+        if (_hook == IntPtr.Zero || _ctrlDown || _altDown)
         {
             return;
         }
@@ -87,7 +91,7 @@ internal sealed class CtrlAltHook : IDisposable
         UnhookWindowsHookEx(_hook);
         _hook = IntPtr.Zero;
         _ctrlDown = _altDown = _armed = _spoiled = false;
-        Install();
+        Install(quiet: true);
     }
 
     private IntPtr OnKeyEvent(int nCode, IntPtr wParam, IntPtr lParam)

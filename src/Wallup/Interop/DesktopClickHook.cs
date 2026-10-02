@@ -87,7 +87,7 @@ internal sealed class DesktopClickHook : IDisposable
 
     internal bool IsInstalled => _hook != IntPtr.Zero;
 
-    internal bool Install()
+    internal bool Install(bool quiet = false)
     {
         if (_hook != IntPtr.Zero)
         {
@@ -104,18 +104,24 @@ internal sealed class DesktopClickHook : IDisposable
             return false;
         }
 
-        Log.Info("Desktop click hook installed.");
+        if (!quiet)
+        {
+            Log.Info("Desktop click hook installed.");
+        }
+
         return true;
     }
 
     /// <summary>
     /// Hooks again from scratch. Windows removes a hook that answers too slowly without a
     /// word, so after a sleep or a lock - when everything is slow - this is the only way
-    /// to be sure it is still there.
+    /// to be sure it is still there. Hooking again also puts this hook back at the front
+    /// of the queue, ahead of any other app's that might swallow a click first. Skipped
+    /// in the middle of a click, which hooking again would lose.
     /// </summary>
     internal void Rearm()
     {
-        if (_hook == IntPtr.Zero)
+        if (_hook == IntPtr.Zero || _rightPending || _swallowingClick || _swallowingRightClick)
         {
             return;
         }
@@ -126,7 +132,7 @@ internal sealed class DesktopClickHook : IDisposable
         _swallowingRightClick = false;
         _rightPending = false;
         _replay.Stop();
-        Install();
+        Install(quiet: true);
     }
 
     private IntPtr OnMouseEvent(int nCode, IntPtr wParam, IntPtr lParam)

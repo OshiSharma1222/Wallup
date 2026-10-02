@@ -16,6 +16,7 @@ public partial class App : Application
 
     private Mutex? _instanceMutex;
     private HookThread? _hooks;
+    private System.Windows.Threading.DispatcherTimer? _rearm;
     private DesktopClickHook? _hook;
     private CtrlAltHook? _keys;
     private ExplorerWatcher? _explorer;
@@ -59,6 +60,13 @@ public partial class App : Application
         ApplyGesture();
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
         SystemEvents.SessionSwitch += OnSessionSwitch;
+
+        // Also every minute, quietly. Windows says nothing when it drops a hook, and other
+        // apps that hook the keyboard and mouse - Wispr Flow is one - go ahead of a hook
+        // installed before theirs, where they can swallow what we are listening for.
+        _rearm = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        _rearm.Tick += (_, _) => RearmHooks(null);
+        _rearm.Start();
         _viewModel.Settings.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(AppSettings.OpenWith))
@@ -117,7 +125,7 @@ public partial class App : Application
             _composer?.ShowAt(x, y);
         });
 
-        if (!_hooks.Invoke(_hook.Install))
+        if (!_hooks.Invoke(() => _hook.Install()))
         {
             Log.Warn("Desktop click gesture unavailable; the tray menu is the only way in.");
         }
@@ -161,7 +169,7 @@ public partial class App : Application
             ShowComposerAtCursor();
         });
 
-        if (!_hooks!.Invoke(_keys.Install))
+        if (!_hooks!.Invoke(() => _keys.Install()))
         {
             Log.Warn("Ctrl+Alt gesture unavailable.");
         }
@@ -172,9 +180,13 @@ public partial class App : Application
     /// lock screen are when everything is slow. Hooking again afterwards is cheap and is
     /// the only way to be sure.
     /// </summary>
-    private void RearmHooks(string why)
+    private void RearmHooks(string? why)
     {
-        Log.Info($"Re-arming input hooks after {why}.");
+        if (why is not null)
+        {
+            Log.Info($"Re-arming input hooks after {why}.");
+        }
+
         _hooks?.Invoke(() =>
         {
             _hook?.Rearm();
@@ -248,6 +260,7 @@ public partial class App : Application
     {
         _viewModel?.SaveSettings();
 
+        _rearm?.Stop();
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         SystemEvents.SessionSwitch -= OnSessionSwitch;
 
