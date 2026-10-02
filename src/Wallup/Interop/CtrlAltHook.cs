@@ -111,7 +111,12 @@ internal sealed class CtrlAltHook : IDisposable
         }
         else if (_ctrlDown || _altDown)
         {
-            _spoiled = true;
+            // A key-up can go missing - one released on the lock screen or the Ctrl+Alt+Del
+            // screen never reaches the hook - and a key that looks held forever would spoil
+            // every gesture after it. Ask Windows before believing it.
+            _ctrlDown &= IsHeld(VK_LCONTROL) || IsHeld(VK_RCONTROL);
+            _altDown &= IsHeld(VK_LMENU) || IsHeld(VK_RMENU);
+            _spoiled = _ctrlDown || _altDown;
         }
 
         if (_ctrlDown && _altDown)
@@ -157,6 +162,8 @@ internal sealed class CtrlAltHook : IDisposable
 
     private static bool IsAlt(KBDLLHOOKSTRUCT key) =>
         key.vkCode is VK_LMENU or VK_RMENU;
+
+    private static bool IsHeld(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
 
     public void Dispose()
     {
