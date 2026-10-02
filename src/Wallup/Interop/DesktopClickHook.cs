@@ -198,9 +198,22 @@ internal sealed class DesktopClickHook : IDisposable
         var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
 
         if (!RightClickEnabled || data.dwExtraInfo == ReplayMarker
-            || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0
-            || !IsEmptyDesktopAt(data.pt))
+            || (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0)
         {
+            return CallNextHookEx(_hook, nCode, wParam, lParam);
+        }
+
+        if (!IsEmptyDesktopAt(data.pt))
+        {
+            // Only clicks on the desktop are worth a line; a right-click in an app is none
+            // of our business. Without this, "the hook never saw it" and "it saw an icon
+            // there" look exactly the same.
+            var root = GetAncestor(WindowFromPoint(data.pt), GA_ROOT);
+            if (ClassNameOf(root) is "Progman" or "WorkerW")
+            {
+                Log.Info($"Right-click at {data.pt.X},{data.pt.Y} is on a desktop icon -> passing through.");
+            }
+
             return CallNextHookEx(_hook, nCode, wParam, lParam);
         }
 
@@ -221,6 +234,7 @@ internal sealed class DesktopClickHook : IDisposable
             return new IntPtr(1);
         }
 
+        Log.Info($"Right-click at {data.pt.X},{data.pt.Y} on empty desktop -> waiting for a second one.");
         _rightPending = true;
         _lastRightTime = data.time;
         _lastRightPoint = data.pt;
