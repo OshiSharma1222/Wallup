@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using Microsoft.Win32;
 using Wallup.Diagnostics;
 using Wallup.Interop;
 using Wallup.Models;
@@ -56,6 +57,8 @@ public partial class App : Application
         _hooks = new HookThread();
         InstallHook();
         ApplyGesture();
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
+        SystemEvents.SessionSwitch += OnSessionSwitch;
         _viewModel.Settings.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(AppSettings.OpenWith))
@@ -164,6 +167,37 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Windows drops a hook that answers too slowly and says nothing, and sleep and the
+    /// lock screen are when everything is slow. Hooking again afterwards is cheap and is
+    /// the only way to be sure.
+    /// </summary>
+    private void RearmHooks(string why)
+    {
+        Log.Info($"Re-arming input hooks after {why}.");
+        _hooks?.Invoke(() =>
+        {
+            _hook?.Rearm();
+            _keys?.Rearm();
+        });
+    }
+
+    private void OnPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Resume)
+        {
+            Dispatcher.BeginInvoke(() => RearmHooks("resume"));
+        }
+    }
+
+    private void OnSessionSwitch(object? sender, SessionSwitchEventArgs e)
+    {
+        if (e.Reason is SessionSwitchReason.SessionUnlock or SessionSwitchReason.ConsoleConnect)
+        {
+            Dispatcher.BeginInvoke(() => RearmHooks("unlock"));
+        }
+    }
+
     private void InstallTray()
     {
         var menu = new System.Windows.Forms.ContextMenuStrip();
@@ -213,6 +247,9 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _viewModel?.SaveSettings();
+
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+        SystemEvents.SessionSwitch -= OnSessionSwitch;
 
         _hooks?.Invoke(() =>
         {

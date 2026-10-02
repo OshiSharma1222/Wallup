@@ -108,6 +108,27 @@ internal sealed class DesktopClickHook : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Hooks again from scratch. Windows removes a hook that answers too slowly without a
+    /// word, so after a sleep or a lock - when everything is slow - this is the only way
+    /// to be sure it is still there.
+    /// </summary>
+    internal void Rearm()
+    {
+        if (_hook == IntPtr.Zero)
+        {
+            return;
+        }
+
+        UnhookWindowsHookEx(_hook);
+        _hook = IntPtr.Zero;
+        _swallowingClick = false;
+        _swallowingRightClick = false;
+        _rightPending = false;
+        _replay.Stop();
+        Install();
+    }
+
     private IntPtr OnMouseEvent(int nCode, IntPtr wParam, IntPtr lParam)
     {
         // Anything slow here stalls system-wide input, and Windows silently evicts a hook

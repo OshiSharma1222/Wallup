@@ -63,6 +63,20 @@ internal sealed class CtrlAltHook : IDisposable
         return true;
     }
 
+    /// <summary>Hooks again from scratch; see <see cref="DesktopClickHook.Rearm"/>.</summary>
+    internal void Rearm()
+    {
+        if (_hook == IntPtr.Zero)
+        {
+            return;
+        }
+
+        UnhookWindowsHookEx(_hook);
+        _hook = IntPtr.Zero;
+        _ctrlDown = _altDown = _armed = _spoiled = false;
+        Install();
+    }
+
     private IntPtr OnKeyEvent(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0)
